@@ -1724,7 +1724,7 @@ enum MiniMixGainHarness {
             return 10
         }
 
-        print("voiceEarlyReleaseHarness immediateActiveAfterPress=\(immediateActiveAfterPress) immediateDuckedVolume=\(immediateDuckedVolume ?? -1) activeAfterEarlyRelease=\(activeAfterEarlyRelease) volumeAfterEarlyRelease=\(volumeAfterEarlyRelease ?? -1) activeAfterSettled=\(activeAfterSettled) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatus) insertedText=\(insertedText ?? "nil") sttLoadedAfterStop=\(sttLoadedAfterStop)")
+        emitHarnessLine("voiceEarlyReleaseHarness immediateActiveAfterPress=\(immediateActiveAfterPress) immediateDuckedVolume=\(immediateDuckedVolume ?? -1) activeAfterEarlyRelease=\(activeAfterEarlyRelease) volumeAfterEarlyRelease=\(volumeAfterEarlyRelease ?? -1) activeAfterSettled=\(activeAfterSettled) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatus) insertedText=\(insertedText ?? "nil") sttLoadedAfterStop=\(sttLoadedAfterStop)")
         return 0
     }
 
@@ -1822,7 +1822,7 @@ enum MiniMixGainHarness {
             return 10
         }
 
-        print("voiceHotkeyEarlyReleaseHarness immediateActiveAfterPress=\(immediateActiveAfterPress) immediateDuckedVolume=\(immediateDuckedVolume ?? -1) activeAfterEarlyRelease=\(activeAfterEarlyRelease) volumeAfterEarlyRelease=\(volumeAfterEarlyRelease ?? -1) activeAfterSettled=\(activeAfterSettled) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatus) insertedText=\(insertedText ?? "nil") sttLoadedAfterStop=\(sttLoadedAfterStop)")
+        emitHarnessLine("voiceHotkeyEarlyReleaseHarness immediateActiveAfterPress=\(immediateActiveAfterPress) immediateDuckedVolume=\(immediateDuckedVolume ?? -1) activeAfterEarlyRelease=\(activeAfterEarlyRelease) volumeAfterEarlyRelease=\(volumeAfterEarlyRelease ?? -1) activeAfterSettled=\(activeAfterSettled) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatus) insertedText=\(insertedText ?? "nil") sttLoadedAfterStop=\(sttLoadedAfterStop)")
         return 0
     }
 

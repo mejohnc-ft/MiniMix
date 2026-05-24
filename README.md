@@ -103,6 +103,7 @@ scripts/probe-multi-app-gain.sh 0.35 0.55
 scripts/probe-packaged-multi-app-gain-launchservices.sh release 0.35 0.55
 scripts/probe-hotkey-registration.sh
 scripts/probe-packaged-hotkey-registration-launchservices.sh release
+scripts/probe-packaged-voice-hotkey-early-release-launchservices.sh release
 scripts/probe-voice-flow.sh
 scripts/probe-voice-shutdown.sh
 scripts/probe-voice-shutdown-during-start.sh
@@ -157,6 +158,7 @@ Normal record/transcribe/paste runtime paths are passive about macOS privacy. Th
 `probe-packaged-voice-accessibility-denied-launchservices.sh` proves the packaged app restores ducking, unloads STT, removes the captured file, and leaves no taps when real paste insertion is denied by missing Accessibility trust. It exits pending once packaged Accessibility is already trusted.
 `probe-voice-real-recorder-flow.sh` proves `VoiceInputController` can duck app audio, record through the real `MicrophoneRecorder`, hand the captured CAF to a fake STT engine, clean up the recording file, and restore audio without triggering Apple Speech or paste permissions.
 `probe-packaged-hotkey-registration-launchservices.sh` proves `Control-Option-Space` can be registered and released by `MiniMix.app` launched through LaunchServices, without opening the panel or synthesizing the shortcut.
+`probe-packaged-voice-hotkey-early-release-launchservices.sh` proves the packaged app's push-to-talk callback path ducks immediately, restores immediately on early release during recorder startup, settles idle, unloads STT, and avoids Core Audio residue without opening the panel or using live microphone permissions.
 `probe-packaged-voice-flow-launchservices.sh` proves the deterministic voice duck/restore/insert pipeline through `MiniMix.app` launched by LaunchServices with a fake recorder/STT/paste target, so it exercises the packaged app path without mic, Speech, or Accessibility prompts.
 `probe-text-injector-readiness.sh` checks Accessibility trust without prompting and without pasting into the focused app.
 `probe-packaged-text-injector-readiness-launchservices.sh` runs the same Accessibility readiness check through `MiniMix.app` launched by LaunchServices, so its trust evidence belongs to the packaged app identity without prompting or pasting.

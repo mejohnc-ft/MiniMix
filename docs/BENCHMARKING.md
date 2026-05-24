@@ -206,6 +206,7 @@ Probe the voice duck/transcribe/insert flow through the MiniMix binary:
 ```sh
 scripts/probe-hotkey-registration.sh
 scripts/probe-packaged-hotkey-registration-launchservices.sh release
+scripts/probe-packaged-voice-hotkey-early-release-launchservices.sh release
 scripts/probe-voice-flow.sh
 scripts/probe-voice-shutdown.sh
 scripts/probe-voice-shutdown-during-start.sh
@@ -239,6 +240,7 @@ scripts/probe-audio-competitor-inventory.sh
 `probe-packaged-voice-accessibility-denied-launchservices.sh` proves the packaged app restores ducked audio, unloads STT, removes the captured file, and leaves no taps when the real paste injector is denied by packaged Accessibility trust. It exits pending once packaged Accessibility is already trusted.
 `probe-voice-real-recorder-flow.sh` proves the `VoiceInputController` path around the real microphone recorder while keeping STT and paste mocked, so it does not prompt for Apple Speech or Accessibility and does not paste into the focused app.
 `probe-packaged-hotkey-registration-launchservices.sh` proves `Control-Option-Space` registration and release from the packaged app identity through LaunchServices without synthesizing the shortcut.
+`probe-packaged-voice-hotkey-early-release-launchservices.sh` proves the packaged push-to-talk callback path restores ducked audio immediately on early release during recorder startup, settles idle, unloads STT, and avoids live mic/Speech/Accessibility prompts.
 `probe-packaged-voice-flow-launchservices.sh` proves the deterministic voice duck/restore/insert path from the packaged app identity through LaunchServices while keeping recorder, STT, and paste mocked.
 `probe-text-injector-readiness.sh` checks Accessibility trust without prompting and without posting a paste event into the currently focused app.
 `probe-packaged-text-injector-readiness-launchservices.sh` checks the same Accessibility readiness from the packaged app identity through LaunchServices, without prompting and without posting a paste event.
