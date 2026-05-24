@@ -65,6 +65,18 @@ Current idle benchmark after engine wiring:
 MiniMix avg_cpu=0.06 max_cpu=0.30 avg_rss_mb=72.4 max_rss_mb=73.0 samples=5
 ```
 
+## Validation Guard
+
+Process-tap validation can stress `coreaudiod` when macOS is already in a bad audio state. Heavy MiniMix validation now calls `scripts/guard-coreaudio-load.sh` first. The guard checks the current `coreaudiod` CPU load, refuses above `MINIMIX_COREAUDIOD_CPU_LIMIT` (default `150%`), and exits `69`.
+
+Recover before rerunning tap or voice probes:
+
+```sh
+sudo launchctl kickstart -k system/com.apple.audio.coreaudiod
+```
+
+The guard can be bypassed with `MINIMIX_ALLOW_HOT_COREAUDIOD=1`, but that should be reserved for intentional stress testing.
+
 ## Design Rules
 
 - Create taps only for non-default rules.

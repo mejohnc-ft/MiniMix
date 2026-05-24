@@ -146,6 +146,14 @@ Run the full noninteractive MVP gate. This uses silent fixtures and skips packag
 scripts/validate-noninteractive-mvp.sh
 ```
 
+`scripts/guard-coreaudio-load.sh` runs before the heavier tap and voice validation paths. It refuses to continue when `coreaudiod` is already above `MINIMIX_COREAUDIOD_CPU_LIMIT` (default `150%`) and exits `69`, because additional process-tap churn can make a hot audio daemon worse. Recovery is:
+
+```sh
+sudo launchctl kickstart -k system/com.apple.audio.coreaudiod
+```
+
+Use `MINIMIX_ALLOW_HOT_COREAUDIOD=1` only for intentional stress testing or when collecting a failure artifact.
+
 Probe the single-app Core Audio gain path with a silent audio fixture:
 
 ```sh

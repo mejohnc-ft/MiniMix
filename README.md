@@ -80,6 +80,18 @@ Full silent end-to-end gate:
 scripts/validate-noninteractive-mvp.sh
 ```
 
+Heavy Core Audio validation first checks `coreaudiod` load with `scripts/guard-coreaudio-load.sh`. If `coreaudiod` is already above `MINIMIX_COREAUDIOD_CPU_LIMIT` (default `150%`), tap and voice-flow probes refuse to run so they do not make a wedged audio daemon worse. Restart Core Audio before continuing:
+
+```sh
+sudo launchctl kickstart -k system/com.apple.audio.coreaudiod
+```
+
+Only bypass the guard for intentional stress testing:
+
+```sh
+MINIMIX_ALLOW_HOT_COREAUDIOD=1 scripts/validate-noninteractive-mvp.sh
+```
+
 Individual probes:
 
 ```sh
