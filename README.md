@@ -107,6 +107,8 @@ scripts/probe-packaged-voice-hotkey-early-release-launchservices.sh release
 scripts/probe-voice-flow.sh
 scripts/probe-voice-shutdown.sh
 scripts/probe-voice-shutdown-during-start.sh
+scripts/probe-packaged-voice-shutdown-launchservices.sh release
+scripts/probe-packaged-voice-shutdown-during-start-launchservices.sh release
 scripts/probe-voice-early-release.sh
 scripts/probe-voice-hotkey-early-release.sh
 scripts/probe-voice-recorder-failure.sh
@@ -160,6 +162,7 @@ Normal record/transcribe/paste runtime paths are passive about macOS privacy. Th
 `probe-packaged-hotkey-registration-launchservices.sh` proves `Control-Option-Space` can be registered and released by `MiniMix.app` launched through LaunchServices, without opening the panel or synthesizing the shortcut.
 `probe-packaged-voice-hotkey-early-release-launchservices.sh` proves the packaged app's push-to-talk callback path ducks immediately, restores immediately on early release during recorder startup, settles idle, unloads STT, and avoids Core Audio residue without opening the panel or using live microphone permissions.
 `probe-packaged-voice-flow-launchservices.sh` proves the deterministic voice duck/restore/insert pipeline through `MiniMix.app` launched by LaunchServices with a fake recorder/STT/paste target, so it exercises the packaged app path without mic, Speech, or Accessibility prompts.
+`probe-packaged-voice-shutdown-launchservices.sh` and `probe-packaged-voice-shutdown-during-start-launchservices.sh` prove packaged shutdown cleanup restores ducked app audio, stops the recorder, avoids STT/paste, removes the temporary recording, and leaves no Core Audio residue during recording and during recorder startup.
 `probe-text-injector-readiness.sh` checks Accessibility trust without prompting and without pasting into the focused app.
 `probe-packaged-text-injector-readiness-launchservices.sh` runs the same Accessibility readiness check through `MiniMix.app` launched by LaunchServices, so its trust evidence belongs to the packaged app identity without prompting or pasting.
 `probe-apple-speech-baseline.sh` is also permission-gated; it exits before requesting authorization until Speech is already authorized.

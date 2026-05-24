@@ -67,6 +67,8 @@ packaged_apple_speech_file="$(mktemp -t minimix-packaged-apple-speech.XXXXXX)"
 microphone_file="$(mktemp -t minimix-microphone.XXXXXX)"
 packaged_microphone_file="$(mktemp -t minimix-packaged-microphone.XXXXXX)"
 voice_real_recorder_file="$(mktemp -t minimix-voice-real-recorder.XXXXXX)"
+packaged_shutdown_file="$(mktemp -t minimix-packaged-shutdown.XXXXXX)"
+packaged_shutdown_start_file="$(mktemp -t minimix-packaged-shutdown-start.XXXXXX)"
 packaged_mic_denied_file="$(mktemp -t minimix-packaged-mic-denied.XXXXXX)"
 packaged_speech_denied_file="$(mktemp -t minimix-packaged-speech-denied.XXXXXX)"
 packaged_accessibility_denied_file="$(mktemp -t minimix-packaged-accessibility-denied.XXXXXX)"
@@ -80,7 +82,7 @@ automation_status_file="$(mktemp -t minimix-automation-status.XXXXXX)"
 automation_denied_start_file="$(mktemp -t minimix-automation-denied-start.XXXXXX)"
 live_voice_verifier_file="$(mktemp -t minimix-live-voice-verifier.XXXXXX)"
 competitor_inventory_file="$(mktemp -t minimix-competitors.XXXXXX)"
-trap 'rm -f "$audit_file" "$debug_audit_file" "$core_file" "$packaged_state_file" "$packaged_relaunch_file" "$packaged_default_noop_file" "$single_app_gain_file" "$packaged_single_app_gain_file" "$packaged_multi_app_gain_file" "$packaged_mute_file" "$packaged_output_device_file" "$apple_speech_file" "$packaged_apple_speech_file" "$microphone_file" "$packaged_microphone_file" "$voice_real_recorder_file" "$packaged_mic_denied_file" "$packaged_speech_denied_file" "$packaged_accessibility_denied_file" "$packaged_hotkey_file" "$packaged_hotkey_early_release_file" "$packaged_voice_flow_file" "$text_injector_file" "$packaged_text_injector_file" "$launchservices_permissions_file" "$automation_status_file" "$automation_denied_start_file" "$live_voice_verifier_file" "$competitor_inventory_file"; "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true; pkill -x afplay >/dev/null 2>&1 || true' EXIT
+trap 'rm -f "$audit_file" "$debug_audit_file" "$core_file" "$packaged_state_file" "$packaged_relaunch_file" "$packaged_default_noop_file" "$single_app_gain_file" "$packaged_single_app_gain_file" "$packaged_multi_app_gain_file" "$packaged_mute_file" "$packaged_output_device_file" "$apple_speech_file" "$packaged_apple_speech_file" "$microphone_file" "$packaged_microphone_file" "$voice_real_recorder_file" "$packaged_shutdown_file" "$packaged_shutdown_start_file" "$packaged_mic_denied_file" "$packaged_speech_denied_file" "$packaged_accessibility_denied_file" "$packaged_hotkey_file" "$packaged_hotkey_early_release_file" "$packaged_voice_flow_file" "$text_injector_file" "$packaged_text_injector_file" "$launchservices_permissions_file" "$automation_status_file" "$automation_denied_start_file" "$live_voice_verifier_file" "$competitor_inventory_file"; "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true; pkill -x afplay >/dev/null 2>&1 || true' EXIT
 
 audit_args=(--configuration "$configuration")
 if [[ "$run_full" == true ]]; then
@@ -142,6 +144,12 @@ scripts/probe-packaged-microphone-recorder-launchservices.sh "$configuration" >"
 
 voice_real_recorder_status=0
 scripts/probe-voice-real-recorder-flow.sh >"$voice_real_recorder_file" 2>&1 || voice_real_recorder_status=$?
+
+packaged_shutdown_status=0
+scripts/probe-packaged-voice-shutdown-launchservices.sh "$configuration" >"$packaged_shutdown_file" 2>&1 || packaged_shutdown_status=$?
+
+packaged_shutdown_start_status=0
+scripts/probe-packaged-voice-shutdown-during-start-launchservices.sh "$configuration" >"$packaged_shutdown_start_file" 2>&1 || packaged_shutdown_start_status=$?
 
 packaged_mic_denied_status=0
 scripts/probe-packaged-voice-mic-denied-launchservices.sh "$configuration" >"$packaged_mic_denied_file" 2>&1 || packaged_mic_denied_status=$?
@@ -530,6 +538,47 @@ else
   criterion "FAILED" "VoiceInputController real MicrophoneRecorder flow with fake STT/paste" "${voice_real_recorder_summary:-exit=$voice_real_recorder_status}"
 fi
 
+packaged_shutdown_summary="$(last_match 'packagedVoiceShutdownHarness' "$packaged_shutdown_file")"
+if [[ "$packaged_shutdown_status" -eq 0 &&
+      "$packaged_shutdown_summary" == *"ready=true"* &&
+      "$packaged_shutdown_summary" == *"authoritativeForPackagedApp=true"* &&
+      "$packaged_shutdown_summary" == *"immediateActiveAfterPress=1"* &&
+      "$packaged_shutdown_summary" == *"immediateDuckedVolume=0.35"* &&
+      "$packaged_shutdown_summary" == *"activeWhileRecording=1"* &&
+      "$packaged_shutdown_summary" == *"duckedVolume=0.35"* &&
+      "$packaged_shutdown_summary" == *"activeAfterShutdown=0"* &&
+      "$packaged_shutdown_summary" == *"restoredVolume=1.0"* &&
+      "$packaged_shutdown_summary" == *"status=idle"* &&
+      "$packaged_shutdown_summary" == *"recorderStarted=true"* &&
+      "$packaged_shutdown_summary" == *"recorderStopped=true"* &&
+      "$packaged_shutdown_summary" == *"sttLoadedAfterShutdown=false"* &&
+      "$packaged_shutdown_summary" == *"insertedText=nil"* &&
+      "$packaged_shutdown_summary" == *"recordingFileExists=false"* ]]; then
+  criterion "PROVEN" "packaged voice shutdown cleanup via LaunchServices" "$packaged_shutdown_summary"
+else
+  criterion "FAILED" "packaged voice shutdown cleanup via LaunchServices" "${packaged_shutdown_summary:-exit=$packaged_shutdown_status}"
+fi
+
+packaged_shutdown_start_summary="$(last_match 'packagedVoiceShutdownDuringStartHarness' "$packaged_shutdown_start_file")"
+if [[ "$packaged_shutdown_start_status" -eq 0 &&
+      "$packaged_shutdown_start_summary" == *"ready=true"* &&
+      "$packaged_shutdown_start_summary" == *"authoritativeForPackagedApp=true"* &&
+      "$packaged_shutdown_start_summary" == *"immediateActiveAfterPress=1"* &&
+      "$packaged_shutdown_start_summary" == *"immediateDuckedVolume=0.35"* &&
+      "$packaged_shutdown_start_summary" == *"immediateStatus=idle"* &&
+      "$packaged_shutdown_start_summary" == *"activeAfterShutdown=0"* &&
+      "$packaged_shutdown_start_summary" == *"restoredVolume=1.0"* &&
+      "$packaged_shutdown_start_summary" == *"status=idle"* &&
+      "$packaged_shutdown_start_summary" == *"recorderStarted=true"* &&
+      "$packaged_shutdown_start_summary" == *"recorderStopped=true"* &&
+      "$packaged_shutdown_start_summary" == *"sttLoadedAfterShutdown=false"* &&
+      "$packaged_shutdown_start_summary" == *"insertedText=nil"* &&
+      "$packaged_shutdown_start_summary" == *"recordingFileExists=false"* ]]; then
+  criterion "PROVEN" "packaged voice shutdown-during-start cleanup via LaunchServices" "$packaged_shutdown_start_summary"
+else
+  criterion "FAILED" "packaged voice shutdown-during-start cleanup via LaunchServices" "${packaged_shutdown_start_summary:-exit=$packaged_shutdown_start_status}"
+fi
+
 packaged_mic_denied_summary="$(last_match 'packagedVoiceMicDeniedHarness' "$packaged_mic_denied_file")"
 if [[ "$packaged_mic_denied_status" -eq 0 &&
       "$packaged_mic_denied_summary" == *"ready=true"* &&
@@ -820,6 +869,16 @@ fi
 if [[ "$voice_real_recorder_status" -ne 0 && "$voice_real_recorder_status" -ne 66 ]]; then
   echo "mvpComplete=false reason=VoiceInputController real recorder proof failed"
   exit "$voice_real_recorder_status"
+fi
+
+if [[ "$packaged_shutdown_status" -ne 0 ]]; then
+  echo "mvpComplete=false reason=packaged voice shutdown cleanup failed"
+  exit "$packaged_shutdown_status"
+fi
+
+if [[ "$packaged_shutdown_start_status" -ne 0 ]]; then
+  echo "mvpComplete=false reason=packaged voice shutdown-during-start cleanup failed"
+  exit "$packaged_shutdown_start_status"
 fi
 
 if [[ "$packaged_mic_denied_status" -ne 0 && "$packaged_mic_denied_status" -ne 66 ]]; then

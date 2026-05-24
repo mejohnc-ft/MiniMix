@@ -1373,7 +1373,7 @@ enum MiniMixGainHarness {
                 return 10
             }
 
-            print("voiceShutdownHarness immediateActiveAfterPress=\(immediateActiveAfterPress) immediateDuckedVolume=\(immediateDuckedVolume ?? -1) activeWhileRecording=\(activeWhileRecording) duckedVolume=\(duckedVolume ?? -1) activeAfterShutdown=\(activeAfterShutdown) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatusAfterShutdown) recorderStarted=\(recorderStatus.didStart) recorderStopped=\(recorderStatus.didStop) sttLoadedAfterShutdown=\(sttLoadedAfterShutdown) insertedText=\(insertedText ?? "nil") recordingFileExists=\(recordingFileExists)")
+            emitHarnessLine("voiceShutdownHarness immediateActiveAfterPress=\(immediateActiveAfterPress) immediateDuckedVolume=\(immediateDuckedVolume ?? -1) activeWhileRecording=\(activeWhileRecording) duckedVolume=\(duckedVolume ?? -1) activeAfterShutdown=\(activeAfterShutdown) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatusAfterShutdown) recorderStarted=\(recorderStatus.didStart) recorderStopped=\(recorderStatus.didStop) sttLoadedAfterShutdown=\(sttLoadedAfterShutdown) insertedText=\(insertedText ?? "nil") recordingFileExists=\(recordingFileExists)")
             return 0
         } catch {
             player.terminate()
@@ -1622,7 +1622,7 @@ enum MiniMixGainHarness {
                 return 8
             }
 
-            print("voiceShutdownDuringStartHarness immediateActiveAfterPress=\(immediateActiveAfterPress) immediateDuckedVolume=\(immediateDuckedVolume ?? -1) immediateStatus=\(immediateVoiceStatus) activeAfterShutdown=\(activeAfterShutdown) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatusAfterShutdown) recorderStarted=\(recorderStatus.didStart) recorderStopped=\(recorderStatus.didStop) sttLoadedAfterShutdown=\(sttLoadedAfterShutdown) insertedText=\(insertedText ?? "nil") recordingFileExists=\(recordingFileExists)")
+            emitHarnessLine("voiceShutdownDuringStartHarness immediateActiveAfterPress=\(immediateActiveAfterPress) immediateDuckedVolume=\(immediateDuckedVolume ?? -1) immediateStatus=\(immediateVoiceStatus) activeAfterShutdown=\(activeAfterShutdown) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatusAfterShutdown) recorderStarted=\(recorderStatus.didStart) recorderStopped=\(recorderStatus.didStop) sttLoadedAfterShutdown=\(sttLoadedAfterShutdown) insertedText=\(insertedText ?? "nil") recordingFileExists=\(recordingFileExists)")
             return 0
         } catch {
             player.terminate()

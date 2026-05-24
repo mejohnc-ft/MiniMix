@@ -210,6 +210,8 @@ scripts/probe-packaged-voice-hotkey-early-release-launchservices.sh release
 scripts/probe-voice-flow.sh
 scripts/probe-voice-shutdown.sh
 scripts/probe-voice-shutdown-during-start.sh
+scripts/probe-packaged-voice-shutdown-launchservices.sh release
+scripts/probe-packaged-voice-shutdown-during-start-launchservices.sh release
 scripts/probe-voice-early-release.sh
 scripts/probe-voice-hotkey-early-release.sh
 scripts/probe-voice-recorder-failure.sh
@@ -242,6 +244,7 @@ scripts/probe-audio-competitor-inventory.sh
 `probe-packaged-hotkey-registration-launchservices.sh` proves `Control-Option-Space` registration and release from the packaged app identity through LaunchServices without synthesizing the shortcut.
 `probe-packaged-voice-hotkey-early-release-launchservices.sh` proves the packaged push-to-talk callback path restores ducked audio immediately on early release during recorder startup, settles idle, unloads STT, and avoids live mic/Speech/Accessibility prompts.
 `probe-packaged-voice-flow-launchservices.sh` proves the deterministic voice duck/restore/insert path from the packaged app identity through LaunchServices while keeping recorder, STT, and paste mocked.
+`probe-packaged-voice-shutdown-launchservices.sh` and `probe-packaged-voice-shutdown-during-start-launchservices.sh` prove the packaged app restores ducked audio, stops recorder startup/recording, removes temporary recordings, avoids STT/paste, and tears down processing during shutdown.
 `probe-text-injector-readiness.sh` checks Accessibility trust without prompting and without posting a paste event into the currently focused app.
 `probe-packaged-text-injector-readiness-launchservices.sh` checks the same Accessibility readiness from the packaged app identity through LaunchServices, without prompting and without posting a paste event.
 `probe-packaged-apple-speech-baseline-launchservices.sh` checks the Apple Speech baseline from the packaged app identity through LaunchServices, which is the authoritative Speech TCC context for the final app.

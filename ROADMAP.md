@@ -110,6 +110,7 @@ Exit criteria:
 - Validate deterministic duck/transcribe/insert flow with `scripts/probe-voice-flow.sh`.
 - Validate shutdown while recording restores ducking, stops the recorder, and avoids STT/paste with `scripts/probe-voice-shutdown.sh`.
 - Validate shutdown during microphone startup resolves the in-flight recorder task and avoids STT/paste with `scripts/probe-voice-shutdown-during-start.sh`.
+- Validate packaged shutdown cleanup with `scripts/probe-packaged-voice-shutdown-launchservices.sh` and `scripts/probe-packaged-voice-shutdown-during-start-launchservices.sh`.
 - Validate early push-to-talk release during mic startup with `scripts/probe-voice-early-release.sh`.
 - Validate the actual hotkey callback path for early release during mic startup with `scripts/probe-voice-hotkey-early-release.sh`.
 - Validate the packaged hotkey callback path for early release during mic startup with `scripts/probe-packaged-voice-hotkey-early-release-launchservices.sh`.
