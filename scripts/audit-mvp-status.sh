@@ -48,6 +48,10 @@ fi
 
 cd "$repo_root"
 
+if [[ "$run_full" == true ]]; then
+  scripts/guard-coreaudio-load.sh
+fi
+
 cleanup() {
   "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true
 }

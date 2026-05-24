@@ -95,6 +95,10 @@ trap cleanup EXIT
 
 cd "$repo_root"
 
+if [[ "$run_live" == true ]]; then
+  scripts/guard-coreaudio-load.sh
+fi
+
 echo "== MiniMix live voice MVP proof =="
 echo "configuration=$configuration trigger=$trigger requestPermissions=$request_permissions runLive=$run_live"
 
