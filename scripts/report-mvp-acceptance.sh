@@ -51,6 +51,8 @@ fi
 
 cd "$repo_root"
 
+scripts/guard-coreaudio-load.sh
+
 audit_file="$(mktemp -t minimix-audit.XXXXXX)"
 debug_audit_file="$(mktemp -t minimix-debug-audit.XXXXXX)"
 core_file="$(mktemp -t minimix-core.XXXXXX)"

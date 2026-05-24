@@ -12,6 +12,8 @@ trap cleanup EXIT
 
 cd "$repo_root"
 
+scripts/guard-coreaudio-load.sh
+
 require_clean_coreaudio() {
   local status
   status="$(scripts/probe-coreaudio-residue.sh)"
