@@ -40,34 +40,43 @@ if [[ ! -d "$app" ]]; then
   exit 3
 fi
 
-open -g -W -n "$app" --args \
-  --controller-harness "$gain" \
-  --launchservices-packaged \
-  --sound "$sound" \
-  --harness-output "$output_file" >/dev/null 2>&1 &
-open_pid=$!
+run_harness_once() {
+  : >"$output_file"
 
-deadline=$((SECONDS + 45))
-while [[ "$SECONDS" -lt "$deadline" ]]; do
-  if [[ -s "$output_file" ]]; then
-    break
+  open -g -W -n "$app" --args \
+    --controller-harness "$gain" \
+    --launchservices-packaged \
+    --sound "$sound" \
+    --harness-output "$output_file" >/dev/null 2>&1 &
+  open_pid=$!
+
+  deadline=$((SECONDS + 45))
+  while [[ "$SECONDS" -lt "$deadline" ]]; do
+    if [[ -s "$output_file" ]]; then
+      break
+    fi
+    if ! kill -0 "$open_pid" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 0.5
+  done
+
+  if [[ ! -s "$output_file" ]] && kill -0 "$open_pid" >/dev/null 2>&1; then
+    kill "$open_pid" >/dev/null 2>&1 || true
   fi
-  if ! kill -0 "$open_pid" >/dev/null 2>&1; then
-    break
+
+  wait "$open_pid" >/dev/null 2>&1 || true
+  [[ -s "$output_file" ]]
+}
+
+if ! run_harness_once; then
+  "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true
+  pkill -x afplay >/dev/null 2>&1 || true
+  sleep 1
+  if ! run_harness_once; then
+    echo "packagedSingleAppGainHarness ready=false authoritativeForPackagedApp=true reason=no harness output from LaunchServices app run" >&2
+    exit 65
   fi
-  sleep 0.5
-done
-
-if [[ ! -s "$output_file" ]] && kill -0 "$open_pid" >/dev/null 2>&1; then
-  kill "$open_pid" >/dev/null 2>&1 || true
-fi
-
-wait "$open_pid" >/dev/null 2>&1 || true
-
-if [[ ! -s "$output_file" ]]; then
-  kill "$open_pid" >/dev/null 2>&1 || true
-  echo "packagedSingleAppGainHarness ready=false authoritativeForPackagedApp=true reason=no harness output from LaunchServices app run" >&2
-  exit 65
 fi
 
 status="$(cat "$output_file")"

@@ -32,6 +32,7 @@ enum MiniMixGainHarness {
             CommandLine.arguments.contains("--voice-hotkey-early-release-harness") ||
             CommandLine.arguments.contains("--voice-recorder-failure-harness") ||
             CommandLine.arguments.contains("--voice-mic-denied-harness") ||
+            CommandLine.arguments.contains("--voice-speech-denied-harness") ||
             CommandLine.arguments.contains("--voice-paste-failure-harness") ||
             CommandLine.arguments.contains("--voice-stt-failure-harness")
     }
@@ -68,6 +69,10 @@ enum MiniMixGainHarness {
 
         if CommandLine.arguments.contains("--voice-mic-denied-harness") {
             return runVoiceMicDeniedHarness()
+        }
+
+        if CommandLine.arguments.contains("--voice-speech-denied-harness") {
+            return runVoiceSpeechDeniedHarness()
         }
 
         if CommandLine.arguments.contains("--voice-paste-failure-harness") {
@@ -2098,6 +2103,137 @@ enum MiniMixGainHarness {
         }
 
         emitHarnessLine("voiceMicDeniedHarness immediateActiveAfterPress=\(immediateActiveAfterPress) immediateDuckedVolume=\(immediateDuckedVolume ?? -1) activeAfterFailure=\(activeAfterFailure) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatus) insertedText=\(insertedText ?? "nil") sttLoadedAfterFailure=\(sttLoadedAfterFailure) error=\(errorMessage ?? "nil") tapCount=\(tapCount)")
+        return 0
+    }
+
+    @MainActor
+    private static func runVoiceSpeechDeniedHarness() -> Int32 {
+        guard AppleSpeechSTTEngine.authorizationStatus != .authorized else {
+            emitHarnessLine("voiceSpeechDeniedHarness ready=false reason=speechAuthorized")
+            return 66
+        }
+
+        let app = ManagedAudioApp(
+            id: "com.example.speech-denied",
+            displayName: "Speech Denied Harness",
+            bundleIdentifier: "com.example.speech-denied",
+            processIdentifier: getpid(),
+            audioObjectID: 1,
+            volume: 1,
+            isMuted: false,
+            isProducingAudio: true,
+            isDucked: false
+        )
+
+        let textInjector = HarnessTextInjector()
+        let recorder = TrackingHarnessMicrophoneRecorder()
+        let sttEngine = AppleSpeechSTTEngine()
+        let model = MiniMixModel(
+            mixerController: MixerController(
+                appProvider: HarnessRunningAudioAppProvider(apps: [app]),
+                ruleStore: HarnessAudioRuleStore(),
+                audioEngine: HarnessTrackingAudioEngine()
+            ),
+            voiceController: VoiceInputController(
+                recorder: recorder,
+                sttEngine: sttEngine,
+                textInjector: textInjector
+            ),
+            hotkeyController: HarnessHotkeyController()
+        )
+
+        model.startDictation()
+        spinRunLoop(for: 0.2)
+
+        let activeWhileRecording = model.mixer.activeAudioSessionCount
+        let duckedVolume = model.mixer.apps.first?.volume
+        let voiceStatusDuringRecording = model.voice.status
+        let sttLoadedWhileRecording = sttEngine.isLoaded
+
+        model.stopDictation()
+        spinRunLoop(for: 0.4)
+
+        let activeAfterStop = model.mixer.activeAudioSessionCount
+        let restoredVolume = model.mixer.apps.first?.volume
+        let voiceStatusAfterStop = model.voice.status
+        let errorMessage = model.voice.errorMessage
+        let insertedText = textInjector.insertedText
+        let sttLoadedAfterStop = sttEngine.isLoaded
+        var recorderStatus = (didStart: false, didStop: false, path: "")
+        try? awaitBlocking {
+            recorderStatus = await recorder.status()
+        }
+        let recordingFileExists = FileManager.default.fileExists(atPath: recorderStatus.path)
+        let tapCount = currentTapCount()
+        model.shutdown()
+        try? FileManager.default.removeItem(atPath: recorderStatus.path)
+
+        guard activeWhileRecording == 1 else {
+            fputs("Expected one active session while recording before Speech denial, got \(activeWhileRecording)\n", stderr)
+            return 2
+        }
+
+        guard duckedVolume == 0.35 else {
+            fputs("Expected ducked volume 0.35 before Speech denial, got \(String(describing: duckedVolume))\n", stderr)
+            return 3
+        }
+
+        guard voiceStatusDuringRecording == .recording else {
+            fputs("Expected recording state before Speech denial, got \(voiceStatusDuringRecording)\n", stderr)
+            return 4
+        }
+
+        guard !sttLoadedWhileRecording else {
+            fputs("Expected Apple Speech STT to remain unloaded while recording\n", stderr)
+            return 5
+        }
+
+        guard activeAfterStop == 0 else {
+            fputs("Expected zero active sessions after Speech denial, got \(activeAfterStop)\n", stderr)
+            return 6
+        }
+
+        guard restoredVolume == 1 else {
+            fputs("Expected restored volume 1.0 after Speech denial, got \(String(describing: restoredVolume))\n", stderr)
+            return 7
+        }
+
+        guard voiceStatusAfterStop == .idle else {
+            fputs("Expected idle voice state after Speech denial, got \(voiceStatusAfterStop)\n", stderr)
+            return 8
+        }
+
+        guard errorMessage == AppleSpeechError.recognitionDenied.errorDescription else {
+            fputs("Expected Speech permission error, got \(String(describing: errorMessage))\n", stderr)
+            return 9
+        }
+
+        guard insertedText == nil else {
+            fputs("Expected no text insertion after Speech denial, got \(String(describing: insertedText))\n", stderr)
+            return 10
+        }
+
+        guard !sttLoadedAfterStop else {
+            fputs("Expected Apple Speech STT to remain unloaded after Speech denial\n", stderr)
+            return 11
+        }
+
+        guard recorderStatus.didStart, recorderStatus.didStop else {
+            fputs("Expected recorder start/stop before Speech denial, got start=\(recorderStatus.didStart) stop=\(recorderStatus.didStop)\n", stderr)
+            return 12
+        }
+
+        guard !recordingFileExists else {
+            fputs("Expected recording file removed after Speech denial, path=\(recorderStatus.path)\n", stderr)
+            return 13
+        }
+
+        guard tapCount == 0 else {
+            fputs("Expected no Core Audio taps after Speech denial, got \(tapCount)\n", stderr)
+            return 14
+        }
+
+        emitHarnessLine("voiceSpeechDeniedHarness activeWhileRecording=\(activeWhileRecording) duckedVolume=\(duckedVolume ?? -1) sttLoadedWhileRecording=\(sttLoadedWhileRecording) activeAfterStop=\(activeAfterStop) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatusAfterStop) insertedText=\(insertedText ?? "nil") sttLoadedAfterStop=\(sttLoadedAfterStop) recorderStarted=\(recorderStatus.didStart) recorderStopped=\(recorderStatus.didStop) recordingFileExists=\(recordingFileExists) error=\(errorMessage ?? "nil") tapCount=\(tapCount)")
         return 0
     }
 
