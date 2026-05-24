@@ -194,6 +194,7 @@ private final class CoreAudioManagedAudioSession {
             let outputUID = try Self.defaultOutputDeviceUID()
             try createTap()
             try createAggregateDevice(outputUID: outputUID)
+            try validateAggregateDeviceStreamFormat()
             try createAndStartIOProc()
             isStarted = true
         } catch {
@@ -291,6 +292,13 @@ private final class CoreAudioManagedAudioSession {
         aggregateDeviceID = createdAggregateDeviceID
     }
 
+    private func validateAggregateDeviceStreamFormat() throws {
+        let streamFormat = try Self.streamFormat(for: aggregateDeviceID)
+        guard streamFormat.isNativeFloat32PCM else {
+            throw CoreAudioEngineError.unsupportedStreamFormat(streamFormat.diagnosticSummary)
+        }
+    }
+
     private func createAndStartIOProc() throws {
         let pointer = Unmanaged.passRetained(callbackState).toOpaque()
         var createdIOProcID: AudioDeviceIOProcID?
@@ -358,6 +366,31 @@ private final class CoreAudioManagedAudioSession {
         return try stringProperty(kAudioDevicePropertyDeviceUID, objectID: deviceID)
     }
 
+    private static func streamFormat(for objectID: AudioObjectID) throws -> AudioStreamBasicDescription {
+        let scopes: [AudioObjectPropertyScope] = [
+            kAudioObjectPropertyScopeInput,
+            kAudioObjectPropertyScopeOutput
+        ]
+        var lastStatus: OSStatus = noErr
+
+        for scope in scopes {
+            var address = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyStreamFormat,
+                mScope: scope,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            var format = AudioStreamBasicDescription()
+            var dataSize = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+            let status = AudioObjectGetPropertyData(objectID, &address, 0, nil, &dataSize, &format)
+            if status == noErr {
+                return format
+            }
+            lastStatus = status
+        }
+
+        throw CoreAudioEngineError.operationFailed("kAudioDevicePropertyStreamFormat", lastStatus)
+    }
+
     private static func defaultOutputDeviceID() throws -> AudioObjectID {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDefaultOutputDevice,
@@ -412,6 +445,7 @@ private final class CoreAudioManagedAudioSession {
 private enum CoreAudioEngineError: LocalizedError {
     case unsupportedPlatform(String)
     case operationFailed(String, OSStatus)
+    case unsupportedStreamFormat(String)
 
     var errorDescription: String? {
         switch self {
@@ -419,6 +453,34 @@ private enum CoreAudioEngineError: LocalizedError {
             message
         case let .operationFailed(operation, status):
             "\(operation) failed with OSStatus \(status)"
+        case let .unsupportedStreamFormat(summary):
+            "Unsupported Core Audio stream format for MiniMix process tap: \(summary)"
         }
+    }
+}
+
+private extension AudioStreamBasicDescription {
+    var isNativeFloat32PCM: Bool {
+        guard mFormatID == kAudioFormatLinearPCM else {
+            return false
+        }
+
+        let requiredFlags = AudioFormatFlags(kAudioFormatFlagIsFloat)
+        let unsupportedFlags = AudioFormatFlags(kAudioFormatFlagIsBigEndian)
+        return mBitsPerChannel == 32 &&
+            mBytesPerFrame >= MemoryLayout<Float>.stride &&
+            (mFormatFlags & requiredFlags) == requiredFlags &&
+            (mFormatFlags & unsupportedFlags) == 0
+    }
+
+    var diagnosticSummary: String {
+        [
+            "formatID=\(mFormatID)",
+            "flags=\(mFormatFlags)",
+            "sampleRate=\(mSampleRate)",
+            "channels=\(mChannelsPerFrame)",
+            "bits=\(mBitsPerChannel)",
+            "bytesPerFrame=\(mBytesPerFrame)"
+        ].joined(separator: " ")
     }
 }

@@ -13,8 +13,9 @@ bundle rule changes
  -> create private aggregate device with:
       - current default output device
       - the private process tap
+ -> inspect the aggregate stream format
  -> start an AudioDeviceIOProc
- -> copy tap input to output with gain applied
+ -> copy native Float32 PCM tap input to output with gain applied
  -> stop IOProc, destroy aggregate device, destroy tap on reset/quit
 ```
 
@@ -73,10 +74,10 @@ MiniMix avg_cpu=0.06 max_cpu=0.30 avg_rss_mb=72.4 max_rss_mb=73.0 samples=5
 - Tear down the tap and aggregate device when the app returns to `100%` and unmuted.
 - Shut down active sessions on app quit.
 - Restart active sessions when the default output device changes.
+- Validate the aggregate device stream format before starting the IOProc; unsupported non-native/non-Float32 PCM formats fail safely and surface through engine diagnostics.
 - Surface the last Core Audio engine error in the menubar UI.
 
 ## Known MVP Risks
 
 - Release RSS is currently around `75 MB` on this Mac, above the long-term `<50 MB` target.
 - The controller path and menubar slider/reset path are verified. Subjective loudness should still be checked by ear during local use.
-- The IOProc assumes Float sample buffers, which matched the local probe path but should be guarded by format inspection before public release.
