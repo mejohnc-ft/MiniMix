@@ -5,6 +5,7 @@ sound="${2:-${1:-}}"
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
+scripts/guard-coreaudio-load.sh
 
 if [[ -z "$sound" ]]; then
   sound="$(scripts/ensure-silent-audio-fixture.sh)"

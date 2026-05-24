@@ -3,6 +3,8 @@ set -euo pipefail
 
 gain="${1:-0.35}"
 sound="${2:-$(scripts/ensure-silent-audio-fixture.sh)}"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+"$repo_root/scripts/guard-coreaudio-load.sh"
 
 if [ ! -f "$sound" ]; then
   echo "Missing sound file: $sound" >&2

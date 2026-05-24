@@ -27,6 +27,7 @@ if ! [[ "$gain" =~ ^0([.][0-9]+)?$|^1([.]0+)?$ ]]; then
 fi
 
 cd "$repo_root"
+scripts/guard-coreaudio-load.sh
 
 MINIMIX_SILENT_SECONDS=3 scripts/ensure-silent-audio-fixture.sh "$sound" >/dev/null
 

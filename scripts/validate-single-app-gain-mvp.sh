@@ -11,6 +11,7 @@ cleanup() {
 trap cleanup EXIT
 
 cd "$repo_root"
+scripts/guard-coreaudio-load.sh
 
 if [[ -z "$sound" ]]; then
   sound="$(scripts/ensure-silent-audio-fixture.sh)"

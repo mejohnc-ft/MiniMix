@@ -22,6 +22,7 @@ if [[ "$configuration" != "debug" && "$configuration" != "release" ]]; then
 fi
 
 cd "$repo_root"
+scripts/guard-coreaudio-load.sh
 
 if ! scripts/build-app-bundle.sh "$configuration" >"$build_log" 2>&1; then
   cat "$build_log" >&2

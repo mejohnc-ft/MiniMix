@@ -13,6 +13,7 @@ cleanup() {
 trap cleanup EXIT
 
 cd "$repo_root"
+scripts/guard-coreaudio-load.sh
 cleanup
 defaults delete com.mejohncft.MiniMix MiniMix.audioRules.v1 >/dev/null 2>&1 || true
 rm -f "$sound"

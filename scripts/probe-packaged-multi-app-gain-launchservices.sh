@@ -30,6 +30,7 @@ for gain in "$first_gain" "$second_gain"; do
 done
 
 cd "$repo_root"
+scripts/guard-coreaudio-load.sh
 
 MINIMIX_SILENT_SECONDS=3 scripts/ensure-silent-audio-fixture.sh "$sound" >/dev/null
 
