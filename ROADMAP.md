@@ -114,6 +114,7 @@ Exit criteria:
 - Validate the actual hotkey callback path for early release during mic startup with `scripts/probe-voice-hotkey-early-release.sh`.
 - Validate microphone startup failure cleanup with `scripts/probe-voice-recorder-failure.sh`.
 - Validate real `MicrophoneRecorder` capture when mic permission is already granted with `scripts/probe-microphone-recorder.sh`.
+- Validate packaged Mic-denied cleanup with the real microphone recorder using `scripts/probe-packaged-voice-mic-denied-launchservices.sh`.
 - Validate STT failure cleanup with `scripts/probe-voice-stt-failure.sh`.
 - Validate paste failure cleanup with `scripts/probe-voice-paste-failure.sh`.
 - Validate Accessibility readiness for real text insertion without posting paste events with `scripts/probe-text-injector-readiness.sh`.

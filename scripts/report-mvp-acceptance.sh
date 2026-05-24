@@ -67,6 +67,7 @@ packaged_apple_speech_file="$(mktemp -t minimix-packaged-apple-speech.XXXXXX)"
 microphone_file="$(mktemp -t minimix-microphone.XXXXXX)"
 packaged_microphone_file="$(mktemp -t minimix-packaged-microphone.XXXXXX)"
 voice_real_recorder_file="$(mktemp -t minimix-voice-real-recorder.XXXXXX)"
+packaged_mic_denied_file="$(mktemp -t minimix-packaged-mic-denied.XXXXXX)"
 packaged_hotkey_file="$(mktemp -t minimix-packaged-hotkey.XXXXXX)"
 packaged_voice_flow_file="$(mktemp -t minimix-packaged-voice-flow.XXXXXX)"
 text_injector_file="$(mktemp -t minimix-text-injector.XXXXXX)"
@@ -75,7 +76,7 @@ launchservices_permissions_file="$(mktemp -t minimix-ls-permissions.XXXXXX)"
 automation_status_file="$(mktemp -t minimix-automation-status.XXXXXX)"
 automation_denied_start_file="$(mktemp -t minimix-automation-denied-start.XXXXXX)"
 competitor_inventory_file="$(mktemp -t minimix-competitors.XXXXXX)"
-trap 'rm -f "$audit_file" "$debug_audit_file" "$core_file" "$packaged_state_file" "$packaged_relaunch_file" "$packaged_default_noop_file" "$single_app_gain_file" "$packaged_single_app_gain_file" "$packaged_multi_app_gain_file" "$packaged_mute_file" "$packaged_output_device_file" "$apple_speech_file" "$packaged_apple_speech_file" "$microphone_file" "$packaged_microphone_file" "$voice_real_recorder_file" "$packaged_hotkey_file" "$packaged_voice_flow_file" "$text_injector_file" "$packaged_text_injector_file" "$launchservices_permissions_file" "$automation_status_file" "$automation_denied_start_file" "$competitor_inventory_file"; "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true; pkill -x afplay >/dev/null 2>&1 || true' EXIT
+trap 'rm -f "$audit_file" "$debug_audit_file" "$core_file" "$packaged_state_file" "$packaged_relaunch_file" "$packaged_default_noop_file" "$single_app_gain_file" "$packaged_single_app_gain_file" "$packaged_multi_app_gain_file" "$packaged_mute_file" "$packaged_output_device_file" "$apple_speech_file" "$packaged_apple_speech_file" "$microphone_file" "$packaged_microphone_file" "$voice_real_recorder_file" "$packaged_mic_denied_file" "$packaged_hotkey_file" "$packaged_voice_flow_file" "$text_injector_file" "$packaged_text_injector_file" "$launchservices_permissions_file" "$automation_status_file" "$automation_denied_start_file" "$competitor_inventory_file"; "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true; pkill -x afplay >/dev/null 2>&1 || true' EXIT
 
 audit_args=(--configuration "$configuration")
 if [[ "$run_full" == true ]]; then
@@ -137,6 +138,9 @@ scripts/probe-packaged-microphone-recorder-launchservices.sh "$configuration" >"
 
 voice_real_recorder_status=0
 scripts/probe-voice-real-recorder-flow.sh >"$voice_real_recorder_file" 2>&1 || voice_real_recorder_status=$?
+
+packaged_mic_denied_status=0
+scripts/probe-packaged-voice-mic-denied-launchservices.sh "$configuration" >"$packaged_mic_denied_file" 2>&1 || packaged_mic_denied_status=$?
 
 packaged_hotkey_status=0
 scripts/probe-packaged-hotkey-registration-launchservices.sh "$configuration" >"$packaged_hotkey_file" 2>&1 || packaged_hotkey_status=$?
@@ -498,6 +502,25 @@ else
   criterion "FAILED" "VoiceInputController real MicrophoneRecorder flow with fake STT/paste" "${voice_real_recorder_summary:-exit=$voice_real_recorder_status}"
 fi
 
+packaged_mic_denied_summary="$(grep -E 'packagedVoiceMicDeniedHarness' "$packaged_mic_denied_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+if [[ "$packaged_mic_denied_status" -eq 0 &&
+      "$packaged_mic_denied_summary" == *"ready=true"* &&
+      "$packaged_mic_denied_summary" == *"authoritativeForPackagedApp=true"* &&
+      "$packaged_mic_denied_summary" == *"immediateActiveAfterPress=1"* &&
+      "$packaged_mic_denied_summary" == *"immediateDuckedVolume=0.35"* &&
+      "$packaged_mic_denied_summary" == *"activeAfterFailure=0"* &&
+      "$packaged_mic_denied_summary" == *"restoredVolume=1.0"* &&
+      "$packaged_mic_denied_summary" == *"status=idle"* &&
+      "$packaged_mic_denied_summary" == *"insertedText=nil"* &&
+      "$packaged_mic_denied_summary" == *"sttLoadedAfterFailure=false"* &&
+      "$packaged_mic_denied_summary" == *"tapCount=0"* ]]; then
+  criterion "PROVEN" "packaged Mic-denied voice cleanup via LaunchServices" "$packaged_mic_denied_summary"
+elif [[ "$packaged_mic_denied_status" -eq 66 ]]; then
+  criterion "PENDING" "packaged Mic-denied voice cleanup via LaunchServices" "${packaged_mic_denied_summary:-denied proof not applicable after packaged Microphone authorization is ready}"
+else
+  criterion "FAILED" "packaged Mic-denied voice cleanup via LaunchServices" "${packaged_mic_denied_summary:-exit=$packaged_mic_denied_status}"
+fi
+
 packaged_hotkey_summary="$(grep -E 'packagedHotkeyHarness' "$packaged_hotkey_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
 if [[ "$packaged_hotkey_status" -eq 0 &&
       "$packaged_hotkey_summary" == *"ready=true"* &&
@@ -696,6 +719,11 @@ fi
 if [[ "$voice_real_recorder_status" -ne 0 && "$voice_real_recorder_status" -ne 66 ]]; then
   echo "mvpComplete=false reason=VoiceInputController real recorder proof failed"
   exit "$voice_real_recorder_status"
+fi
+
+if [[ "$packaged_mic_denied_status" -ne 0 && "$packaged_mic_denied_status" -ne 66 ]]; then
+  echo "mvpComplete=false reason=packaged Mic-denied voice cleanup failed"
+  exit "$packaged_mic_denied_status"
 fi
 
 if [[ "$packaged_voice_flow_status" -ne 0 ]]; then

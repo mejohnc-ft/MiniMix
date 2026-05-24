@@ -113,6 +113,7 @@ scripts/probe-voice-stt-failure.sh
 scripts/probe-voice-paste-failure.sh
 scripts/probe-microphone-recorder.sh
 scripts/probe-packaged-microphone-recorder-launchservices.sh release
+scripts/probe-packaged-voice-mic-denied-launchservices.sh release
 scripts/probe-packaged-voice-flow-launchservices.sh release
 scripts/probe-text-injector-readiness.sh
 scripts/probe-packaged-text-injector-readiness-launchservices.sh release
@@ -149,6 +150,7 @@ Normal record/transcribe/paste runtime paths are passive about macOS privacy. Th
 `probe-live-voice-readiness.sh` is expected to fail until the packaged app has mic, Speech, and Accessibility permissions.
 `probe-microphone-recorder.sh` is permission-safe: it checks mic authorization before touching `MicrophoneRecorder.start()`, so it records a short real microphone CAF only when permission is already authorized and otherwise exits pending without prompting.
 `probe-packaged-microphone-recorder-launchservices.sh` runs the same microphone recorder proof through `MiniMix.app` launched by LaunchServices, so its mic authorization evidence belongs to the packaged app identity rather than the terminal-launched debug executable.
+`probe-packaged-voice-mic-denied-launchservices.sh` proves the packaged app restores ducking and leaves no taps when the real MicrophoneRecorder fails because packaged Mic permission is missing. It exits pending once packaged Mic permission is already authorized.
 `probe-voice-real-recorder-flow.sh` proves `VoiceInputController` can duck app audio, record through the real `MicrophoneRecorder`, hand the captured CAF to a fake STT engine, clean up the recording file, and restore audio without triggering Apple Speech or paste permissions.
 `probe-packaged-hotkey-registration-launchservices.sh` proves `Control-Option-Space` can be registered and released by `MiniMix.app` launched through LaunchServices, without opening the panel or synthesizing the shortcut.
 `probe-packaged-voice-flow-launchservices.sh` proves the deterministic voice duck/restore/insert pipeline through `MiniMix.app` launched by LaunchServices with a fake recorder/STT/paste target, so it exercises the packaged app path without mic, Speech, or Accessibility prompts.

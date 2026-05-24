@@ -31,6 +31,7 @@ enum MiniMixGainHarness {
             CommandLine.arguments.contains("--voice-early-release-harness") ||
             CommandLine.arguments.contains("--voice-hotkey-early-release-harness") ||
             CommandLine.arguments.contains("--voice-recorder-failure-harness") ||
+            CommandLine.arguments.contains("--voice-mic-denied-harness") ||
             CommandLine.arguments.contains("--voice-paste-failure-harness") ||
             CommandLine.arguments.contains("--voice-stt-failure-harness")
     }
@@ -63,6 +64,10 @@ enum MiniMixGainHarness {
 
         if CommandLine.arguments.contains("--voice-recorder-failure-harness") {
             return runVoiceRecorderFailureHarness()
+        }
+
+        if CommandLine.arguments.contains("--voice-mic-denied-harness") {
+            return runVoiceMicDeniedHarness()
         }
 
         if CommandLine.arguments.contains("--voice-paste-failure-harness") {
@@ -1999,6 +2004,100 @@ enum MiniMixGainHarness {
         }
 
         print("voiceRecorderFailureHarness immediateActiveAfterPress=\(immediateActiveAfterPress) immediateDuckedVolume=\(immediateDuckedVolume ?? -1) activeAfterFailure=\(activeAfterFailure) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatus) insertedText=\(insertedText ?? "nil") sttLoadedAfterFailure=\(sttLoadedAfterFailure) error=\(errorMessage ?? "nil")")
+        return 0
+    }
+
+    @MainActor
+    private static func runVoiceMicDeniedHarness() -> Int32 {
+        let app = ManagedAudioApp(
+            id: "com.example.mic-denied",
+            displayName: "Mic Denied Harness",
+            bundleIdentifier: "com.example.mic-denied",
+            processIdentifier: getpid(),
+            audioObjectID: 1,
+            volume: 1,
+            isMuted: false,
+            isProducingAudio: true,
+            isDucked: false
+        )
+
+        let textInjector = HarnessTextInjector()
+        let sttEngine = HarnessSTTEngine(transcript: "should not transcribe")
+        let model = MiniMixModel(
+            mixerController: MixerController(
+                appProvider: HarnessRunningAudioAppProvider(apps: [app]),
+                ruleStore: HarnessAudioRuleStore(),
+                audioEngine: HarnessTrackingAudioEngine()
+            ),
+            voiceController: VoiceInputController(
+                recorder: MicrophoneRecorder(),
+                sttEngine: sttEngine,
+                textInjector: textInjector
+            ),
+            hotkeyController: HarnessHotkeyController()
+        )
+
+        model.startDictation()
+        let immediateActiveAfterPress = model.mixer.activeAudioSessionCount
+        let immediateDuckedVolume = model.mixer.apps.first?.volume
+
+        spinRunLoop(for: 0.4)
+
+        let activeAfterFailure = model.mixer.activeAudioSessionCount
+        let restoredVolume = model.mixer.apps.first?.volume
+        let voiceStatus = model.voice.status
+        let errorMessage = model.voice.errorMessage
+        let insertedText = textInjector.insertedText
+        let sttLoadedAfterFailure = sttEngine.isLoaded
+        let tapCount = currentTapCount()
+        model.shutdown()
+
+        guard immediateActiveAfterPress == 1 else {
+            fputs("Expected one active session immediately after mic-denied start, got \(immediateActiveAfterPress)\n", stderr)
+            return 2
+        }
+
+        guard immediateDuckedVolume == 0.35 else {
+            fputs("Expected immediate ducked volume 0.35 for mic-denied start, got \(String(describing: immediateDuckedVolume))\n", stderr)
+            return 3
+        }
+
+        guard activeAfterFailure == 0 else {
+            fputs("Expected zero active sessions after mic-denied failure, got \(activeAfterFailure)\n", stderr)
+            return 4
+        }
+
+        guard restoredVolume == 1 else {
+            fputs("Expected restored volume 1.0 after mic-denied failure, got \(String(describing: restoredVolume))\n", stderr)
+            return 5
+        }
+
+        guard voiceStatus == .idle else {
+            fputs("Expected idle voice state after mic-denied failure, got \(voiceStatus)\n", stderr)
+            return 6
+        }
+
+        guard errorMessage == MicrophoneRecorderError.microphoneDenied.errorDescription else {
+            fputs("Expected microphone permission error message, got \(String(describing: errorMessage))\n", stderr)
+            return 7
+        }
+
+        guard insertedText == nil else {
+            fputs("Expected no text insertion after mic-denied failure, got \(String(describing: insertedText))\n", stderr)
+            return 8
+        }
+
+        guard !sttLoadedAfterFailure else {
+            fputs("Expected STT engine to remain unloaded after mic-denied failure\n", stderr)
+            return 9
+        }
+
+        guard tapCount == 0 else {
+            fputs("Expected no Core Audio taps after mic-denied failure, got \(tapCount)\n", stderr)
+            return 10
+        }
+
+        emitHarnessLine("voiceMicDeniedHarness immediateActiveAfterPress=\(immediateActiveAfterPress) immediateDuckedVolume=\(immediateDuckedVolume ?? -1) activeAfterFailure=\(activeAfterFailure) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatus) insertedText=\(insertedText ?? "nil") sttLoadedAfterFailure=\(sttLoadedAfterFailure) error=\(errorMessage ?? "nil") tapCount=\(tapCount)")
         return 0
     }
 
