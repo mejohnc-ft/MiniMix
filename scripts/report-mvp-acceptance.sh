@@ -73,8 +73,9 @@ text_injector_file="$(mktemp -t minimix-text-injector.XXXXXX)"
 packaged_text_injector_file="$(mktemp -t minimix-packaged-text-injector.XXXXXX)"
 launchservices_permissions_file="$(mktemp -t minimix-ls-permissions.XXXXXX)"
 automation_status_file="$(mktemp -t minimix-automation-status.XXXXXX)"
+automation_denied_start_file="$(mktemp -t minimix-automation-denied-start.XXXXXX)"
 competitor_inventory_file="$(mktemp -t minimix-competitors.XXXXXX)"
-trap 'rm -f "$audit_file" "$debug_audit_file" "$core_file" "$packaged_state_file" "$packaged_relaunch_file" "$packaged_default_noop_file" "$single_app_gain_file" "$packaged_single_app_gain_file" "$packaged_multi_app_gain_file" "$packaged_mute_file" "$packaged_output_device_file" "$apple_speech_file" "$packaged_apple_speech_file" "$microphone_file" "$packaged_microphone_file" "$voice_real_recorder_file" "$packaged_hotkey_file" "$packaged_voice_flow_file" "$text_injector_file" "$packaged_text_injector_file" "$launchservices_permissions_file" "$automation_status_file" "$competitor_inventory_file"; "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true; pkill -x afplay >/dev/null 2>&1 || true' EXIT
+trap 'rm -f "$audit_file" "$debug_audit_file" "$core_file" "$packaged_state_file" "$packaged_relaunch_file" "$packaged_default_noop_file" "$single_app_gain_file" "$packaged_single_app_gain_file" "$packaged_multi_app_gain_file" "$packaged_mute_file" "$packaged_output_device_file" "$apple_speech_file" "$packaged_apple_speech_file" "$microphone_file" "$packaged_microphone_file" "$voice_real_recorder_file" "$packaged_hotkey_file" "$packaged_voice_flow_file" "$text_injector_file" "$packaged_text_injector_file" "$launchservices_permissions_file" "$automation_status_file" "$automation_denied_start_file" "$competitor_inventory_file"; "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true; pkill -x afplay >/dev/null 2>&1 || true' EXIT
 
 audit_args=(--configuration "$configuration")
 if [[ "$run_full" == true ]]; then
@@ -154,6 +155,9 @@ scripts/probe-packaged-voice-permissions-launchservices.sh "$configuration" >"$l
 
 automation_status_status=0
 scripts/probe-packaged-automation-status.sh "$configuration" >"$automation_status_file" 2>&1 || automation_status_status=$?
+
+automation_denied_start_status=0
+scripts/probe-packaged-automation-denied-start-launchservices.sh "$configuration" >"$automation_denied_start_file" 2>&1 || automation_denied_start_status=$?
 
 competitor_inventory_status=0
 scripts/probe-audio-competitor-inventory.sh >"$competitor_inventory_file" 2>&1 || competitor_inventory_status=$?
@@ -556,6 +560,21 @@ else
   criterion "FAILED" "packaged no-panel automation status channel" "${automation_status_summary:-exit=$automation_status_status}"
 fi
 
+automation_denied_start_summary="$(grep -E 'packagedAutomationDeniedStart' "$automation_denied_start_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+if [[ "$automation_denied_start_status" -eq 0 ]] &&
+  [[ "$automation_denied_start_summary" == *"ready=true"* ]] &&
+  [[ "$automation_denied_start_summary" == *"authoritativeForPackagedApp=true"* ]] &&
+  [[ "$automation_denied_start_summary" == *"voiceStatus=idle"* ]] &&
+  [[ "$automation_denied_start_summary" == *"voiceActive=false"* ]] &&
+  [[ "$automation_denied_start_summary" == *"activeAudioSessionCount=0"* ]] &&
+  [[ "$automation_denied_start_summary" == *"errorPresent=true"* ]]; then
+  criterion "PROVEN" "packaged automation denied-start cleanup via LaunchServices" "$automation_denied_start_summary"
+elif [[ "$automation_denied_start_status" -eq 66 ]]; then
+  criterion "PENDING" "packaged automation denied-start cleanup via LaunchServices" "${automation_denied_start_summary:-denied-start proof not applicable after packaged mic permission is granted}"
+else
+  criterion "FAILED" "packaged automation denied-start cleanup via LaunchServices" "${automation_denied_start_summary:-exit=$automation_denied_start_status}"
+fi
+
 has_pass "current tap cleanup" && has_pass "current aggregate cleanup" &&
   criterion "PROVEN" "no stuck taps or aggregate devices" "$(line_for "current tap cleanup"); $(line_for "current aggregate cleanup")" ||
   criterion "MISSING" "no stuck taps or aggregate devices" "$(line_for "current tap cleanup"); $(line_for "current aggregate cleanup")"
@@ -707,6 +726,11 @@ fi
 if [[ "$automation_status_status" -ne 0 ]]; then
   echo "mvpComplete=false reason=packaged automation status probe failed"
   exit "$automation_status_status"
+fi
+
+if [[ "$automation_denied_start_status" -ne 0 && "$automation_denied_start_status" -ne 66 ]]; then
+  echo "mvpComplete=false reason=packaged automation denied-start cleanup failed"
+  exit "$automation_denied_start_status"
 fi
 
 if [[ "$competitor_inventory_status" -ne 0 ]]; then

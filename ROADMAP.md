@@ -118,6 +118,7 @@ Exit criteria:
 - Validate paste failure cleanup with `scripts/probe-voice-paste-failure.sh`.
 - Validate Accessibility readiness for real text insertion without posting paste events with `scripts/probe-text-injector-readiness.sh`.
 - Validate the deterministic voice duck/restore/insert path through the packaged app identity with `scripts/probe-packaged-voice-flow-launchservices.sh`.
+- Validate packaged token-gated start cleanup when microphone permission is missing with `scripts/probe-packaged-automation-denied-start-launchservices.sh`.
 - Validate packaged permission status without changing TCC grants with `scripts/probe-packaged-voice-permissions-launchservices.sh`.
 - Validate packaged Mic, Speech, and Accessibility readiness individually with `scripts/probe-packaged-microphone-recorder-launchservices.sh`, `scripts/probe-packaged-apple-speech-baseline-launchservices.sh`, and `scripts/probe-packaged-text-injector-readiness-launchservices.sh`.
 - Gate live voice testing with `scripts/probe-live-voice-readiness.sh`.

@@ -120,6 +120,7 @@ scripts/probe-apple-speech-baseline.sh
 scripts/probe-packaged-apple-speech-baseline-launchservices.sh release
 scripts/probe-codesign-readiness.sh
 scripts/probe-packaged-automation-status.sh release
+scripts/probe-packaged-automation-denied-start-launchservices.sh release
 scripts/probe-packaged-voice-permissions-launchservices.sh release
 scripts/request-packaged-voice-permissions-launchservices.sh release --check-only
 scripts/probe-audio-competitor-inventory.sh
@@ -156,6 +157,7 @@ Normal record/transcribe/paste runtime paths are passive about macOS privacy. Th
 `probe-apple-speech-baseline.sh` is also permission-gated; it exits before requesting authorization until Speech is already authorized.
 `probe-packaged-apple-speech-baseline-launchservices.sh` runs the same Apple Speech baseline through `MiniMix.app` launched by LaunchServices, so its Speech authorization evidence belongs to the packaged app identity rather than the terminal-launched debug executable.
 `probe-packaged-automation-status.sh` launches the packaged app in the background with an ephemeral automation token, proves untokened automation URLs are ignored, asks it to write a one-line status snapshot through MiniMix automation URL events, and quits without opening the panel or recording.
+`probe-packaged-automation-denied-start-launchservices.sh` proves the packaged token-gated start path fails fast and leaves no taps/devices when microphone permission is not granted, without prompting or recording. It exits pending once packaged microphone permission is already authorized.
 `probe-packaged-voice-permissions-launchservices.sh` launches `MiniMix.app` in the background through LaunchServices, writes the packaged permission state from the app process, exits immediately, and does not open the MiniMix panel.
 `request-packaged-voice-permissions-launchservices.sh` is the preferred opt-in permission request path: it asks the packaged app to request Mic, Speech, and Accessibility without opening the MiniMix panel. It refuses ad-hoc signed builds unless `--allow-adhoc` is passed.
 When packaged voice permissions are missing, the MiniMix panel shows a `Permissions` button that requests mic, Speech, and Accessibility access from the app bundle identity.

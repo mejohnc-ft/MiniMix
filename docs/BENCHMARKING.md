@@ -223,6 +223,7 @@ scripts/probe-apple-speech-baseline.sh
 scripts/probe-packaged-apple-speech-baseline-launchservices.sh release
 scripts/probe-codesign-readiness.sh
 scripts/probe-packaged-automation-status.sh release
+scripts/probe-packaged-automation-denied-start-launchservices.sh release
 scripts/probe-packaged-voice-permissions-launchservices.sh release
 scripts/request-packaged-voice-permissions-launchservices.sh release --check-only
 scripts/probe-audio-competitor-inventory.sh
@@ -237,6 +238,7 @@ scripts/probe-audio-competitor-inventory.sh
 `probe-packaged-text-injector-readiness-launchservices.sh` checks the same Accessibility readiness from the packaged app identity through LaunchServices, without prompting and without posting a paste event.
 `probe-packaged-apple-speech-baseline-launchservices.sh` checks the Apple Speech baseline from the packaged app identity through LaunchServices, which is the authoritative Speech TCC context for the final app.
 `probe-packaged-automation-status.sh` proves the packaged no-panel automation status channel used by the lowest-focus live voice trigger, including that untokened automation URLs are ignored.
+`probe-packaged-automation-denied-start-launchservices.sh` proves token-gated start dictation fails fast and cleans up with packaged microphone permission missing, without prompting or recording. It exits pending after packaged microphone permission is granted.
 `probe-packaged-voice-permissions-launchservices.sh` launches `MiniMix.app` in the background through LaunchServices and captures packaged permission state without opening the MiniMix panel.
 `request-packaged-voice-permissions-launchservices.sh` is the preferred opt-in request path because it asks the packaged app to request Mic, Speech, and Accessibility without opening the MiniMix panel.
 Normal MiniMix runtime voice paths do not request TCC prompts. Microphone capture, Apple Speech transcription, and text insertion fail fast when permission is missing; only the explicit permission requester path prompts.
