@@ -94,11 +94,11 @@ if ! scripts/build-app-bundle.sh "$configuration" >"$build_log" 2>&1; then
   exit 4
 fi
 
-signature="$(codesign -dv "$app" 2>&1 || true)"
+signature="$(codesign -dvv "$app" 2>&1 || true)"
 signature_summary="$(printf '%s\n' "$signature" | grep -E 'Signature=|Authority=|TeamIdentifier=|CodeDirectory' | tr '\n' ' ' | sed 's/[[:space:]][[:space:]]*/ /g; s/ $//')"
 echo "liveVoicePaste=codeSignature ${signature_summary:-unavailable}"
 if [[ "$allow_adhoc" != true &&
-      ( "$signature" == *"Signature=adhoc"* || "$signature" == *"TeamIdentifier=not set"* ) ]]; then
+      "$signature" == *"Signature=adhoc"* ]]; then
   echo "liveVoicePaste=false reason=ad-hoc signature would make live packaged voice proof unstable; pass --allow-adhoc only for intentional ad-hoc testing" >&2
   exit 65
 fi

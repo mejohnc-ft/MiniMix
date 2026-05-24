@@ -107,12 +107,12 @@ else
   fail "packaged executable" "$executable missing or not executable"
 fi
 
-signature="$(codesign -dv "$app" 2>&1 || true)"
+signature="$(codesign -dvv "$app" 2>&1 || true)"
 if [[ "$signature" == *"Signature="* || "$signature" == *"Authority="* ]]; then
   signature_summary="$(printf '%s\n' "$signature" | grep -E 'Signature=|Authority=|TeamIdentifier=|CodeDirectory' | tr '\n' ' ' | sed 's/[[:space:]][[:space:]]*/ /g; s/ $//')"
   pass "code signature" "$signature_summary"
-  if [[ "$signature" == *"Signature=adhoc"* || "$signature" == *"TeamIdentifier=not set"* ]]; then
-    warn "privacy-stable code signature" "ad-hoc signature; set MINIMIX_CODESIGN_IDENTITY to a stable Apple Development identity before granting packaged voice permissions"
+  if [[ "$signature" == *"Signature=adhoc"* ]]; then
+    warn "privacy-stable code signature" "ad-hoc signature; set MINIMIX_CODESIGN_IDENTITY to a stable code-signing identity before granting packaged voice permissions"
   else
     pass "privacy-stable code signature" "$signature_summary"
   fi

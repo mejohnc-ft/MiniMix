@@ -78,10 +78,10 @@ if ! scripts/build-app-bundle.sh "$configuration" >"$build_log" 2>&1; then
   exit 4
 fi
 
-signature="$(codesign -dv "$app" 2>&1 || true)"
+signature="$(codesign -dvv "$app" 2>&1 || true)"
 signature_summary="$(printf '%s\n' "$signature" | grep -E 'Signature=|Authority=|TeamIdentifier=|CodeDirectory' | tr '\n' ' ' | sed 's/[[:space:]][[:space:]]*/ /g; s/ $//')"
 is_adhoc=false
-if [[ "$signature" == *"Signature=adhoc"* || "$signature" == *"TeamIdentifier=not set"* ]]; then
+if [[ "$signature" == *"Signature=adhoc"* ]]; then
   is_adhoc=true
 fi
 

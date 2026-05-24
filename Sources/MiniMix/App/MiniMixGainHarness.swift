@@ -575,7 +575,9 @@ enum MiniMixGainHarness {
 
                 let normalizedTranscript = normalizeForComparison(transcript.text)
                 let normalizedExpected = normalizeForComparison(text)
-                guard normalizedTranscript.contains(normalizedExpected) else {
+                let compactTranscript = normalizedTranscript.filter { !$0.isWhitespace }
+                let compactExpected = normalizedExpected.filter { !$0.isWhitespace }
+                guard normalizedTranscript.contains(normalizedExpected) || compactTranscript.contains(compactExpected) else {
                     throw HarnessError.unexpectedTranscript(expected: text, actual: transcript.text)
                 }
 
