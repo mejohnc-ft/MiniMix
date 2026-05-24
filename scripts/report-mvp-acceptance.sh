@@ -77,8 +77,9 @@ packaged_text_injector_file="$(mktemp -t minimix-packaged-text-injector.XXXXXX)"
 launchservices_permissions_file="$(mktemp -t minimix-ls-permissions.XXXXXX)"
 automation_status_file="$(mktemp -t minimix-automation-status.XXXXXX)"
 automation_denied_start_file="$(mktemp -t minimix-automation-denied-start.XXXXXX)"
+live_voice_verifier_file="$(mktemp -t minimix-live-voice-verifier.XXXXXX)"
 competitor_inventory_file="$(mktemp -t minimix-competitors.XXXXXX)"
-trap 'rm -f "$audit_file" "$debug_audit_file" "$core_file" "$packaged_state_file" "$packaged_relaunch_file" "$packaged_default_noop_file" "$single_app_gain_file" "$packaged_single_app_gain_file" "$packaged_multi_app_gain_file" "$packaged_mute_file" "$packaged_output_device_file" "$apple_speech_file" "$packaged_apple_speech_file" "$microphone_file" "$packaged_microphone_file" "$voice_real_recorder_file" "$packaged_mic_denied_file" "$packaged_speech_denied_file" "$packaged_accessibility_denied_file" "$packaged_hotkey_file" "$packaged_voice_flow_file" "$text_injector_file" "$packaged_text_injector_file" "$launchservices_permissions_file" "$automation_status_file" "$automation_denied_start_file" "$competitor_inventory_file"; "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true; pkill -x afplay >/dev/null 2>&1 || true' EXIT
+trap 'rm -f "$audit_file" "$debug_audit_file" "$core_file" "$packaged_state_file" "$packaged_relaunch_file" "$packaged_default_noop_file" "$single_app_gain_file" "$packaged_single_app_gain_file" "$packaged_multi_app_gain_file" "$packaged_mute_file" "$packaged_output_device_file" "$apple_speech_file" "$packaged_apple_speech_file" "$microphone_file" "$packaged_microphone_file" "$voice_real_recorder_file" "$packaged_mic_denied_file" "$packaged_speech_denied_file" "$packaged_accessibility_denied_file" "$packaged_hotkey_file" "$packaged_voice_flow_file" "$text_injector_file" "$packaged_text_injector_file" "$launchservices_permissions_file" "$automation_status_file" "$automation_denied_start_file" "$live_voice_verifier_file" "$competitor_inventory_file"; "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true; pkill -x afplay >/dev/null 2>&1 || true' EXIT
 
 audit_args=(--configuration "$configuration")
 if [[ "$run_full" == true ]]; then
@@ -170,6 +171,9 @@ scripts/probe-packaged-automation-status.sh "$configuration" >"$automation_statu
 
 automation_denied_start_status=0
 scripts/probe-packaged-automation-denied-start-launchservices.sh "$configuration" >"$automation_denied_start_file" 2>&1 || automation_denied_start_status=$?
+
+live_voice_verifier_status=0
+scripts/verify-live-voice-mvp.sh "$configuration" >"$live_voice_verifier_file" 2>&1 || live_voice_verifier_status=$?
 
 competitor_inventory_status=0
 scripts/probe-audio-competitor-inventory.sh >"$competitor_inventory_file" 2>&1 || competitor_inventory_status=$?
@@ -653,6 +657,15 @@ else
   criterion "FAILED" "packaged automation denied-start cleanup via LaunchServices" "${automation_denied_start_summary:-exit=$automation_denied_start_status}"
 fi
 
+live_voice_verifier_summary="$(grep -E 'liveVoiceMVP=' "$live_voice_verifier_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+if [[ "$live_voice_verifier_status" -eq 0 && "$live_voice_verifier_summary" == *"liveVoiceMVP=ready"* ]]; then
+  criterion "READY" "final live voice MVP verifier preflight" "$live_voice_verifier_summary"
+elif [[ "$live_voice_verifier_status" -eq 66 ]]; then
+  criterion "PENDING" "final live voice MVP verifier preflight" "${live_voice_verifier_summary:-permission-gated; scripts/verify-live-voice-mvp.sh $configuration exited 66}"
+else
+  criterion "FAILED" "final live voice MVP verifier preflight" "${live_voice_verifier_summary:-exit=$live_voice_verifier_status}"
+fi
+
 has_pass "current tap cleanup" && has_pass "current aggregate cleanup" &&
   criterion "PROVEN" "no stuck taps or aggregate devices" "$(line_for "current tap cleanup"); $(line_for "current aggregate cleanup")" ||
   criterion "MISSING" "no stuck taps or aggregate devices" "$(line_for "current tap cleanup"); $(line_for "current aggregate cleanup")"
@@ -824,6 +837,11 @@ fi
 if [[ "$automation_denied_start_status" -ne 0 && "$automation_denied_start_status" -ne 66 ]]; then
   echo "mvpComplete=false reason=packaged automation denied-start cleanup failed"
   exit "$automation_denied_start_status"
+fi
+
+if [[ "$live_voice_verifier_status" -ne 0 && "$live_voice_verifier_status" -ne 66 ]]; then
+  echo "mvpComplete=false reason=final live voice MVP verifier failed"
+  exit "$live_voice_verifier_status"
 fi
 
 if [[ "$competitor_inventory_status" -ne 0 ]]; then
