@@ -32,7 +32,8 @@ fi
   for _ in $(seq 1 "$samples"); do
     ts="$(date -Iseconds)"
     ps -axo pid=,ppid=,%cpu=,%mem=,rss=,args= |
-      rg -i 'MiniMix|FineTune|SoundSource|arkaudiod|coreaudiod|AirPlayXPCHelper|Background Music|BGM' |
+      rg -i 'MiniMix|FineTune|SoundSource|superwhisper|WhisperKit|arkaudiod|coreaudiod|AirPlayXPCHelper|Background Music|BGM' |
+      rg -v 'capture-audio-benchmark|rg -i|/bin/zsh -lc|bash scripts/' |
       awk -v ts="$ts" '{pid=$1; ppid=$2; cpu=$3; mem=$4; rss=$5; args=""; for (i=6; i<=NF; i++) args=args (i==6 ? "" : " ") $i; gsub(",", " ", args); print ts "," pid "," ppid "," cpu "," mem "," rss "," args}'
     sleep "$interval"
   done

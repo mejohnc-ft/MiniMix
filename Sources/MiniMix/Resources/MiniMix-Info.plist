@@ -4,9 +4,36 @@
 <dict>
     <key>CFBundleDisplayName</key>
     <string>MiniMix</string>
-    <key>LSUIElement</key>
-    <true/>
+    <key>CFBundleIdentifier</key>
+    <string>com.mejohncft.MiniMix</string>
+    <key>CFBundleName</key>
+    <string>MiniMix</string>
+    <key>CFBundleExecutable</key>
+    <string>MiniMix</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.mejohncft.MiniMix</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>minimix</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSUIElement</key>
+	<true/>
     <key>NSAudioCaptureUsageDescription</key>
     <string>MiniMix needs system audio access to control per-app volume.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>MiniMix needs microphone access for push-to-talk voice input.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>MiniMix uses speech recognition to transcribe your voice input.</string>
+    <key>NSAccessibilityUsageDescription</key>
+    <string>MiniMix needs Accessibility access to paste dictated text into the focused app.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>MiniMix may use app automation to insert dictated text into the focused app.</string>
 </dict>
 </plist>
