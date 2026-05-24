@@ -195,18 +195,30 @@ has_warn() {
 }
 
 line_for() {
-  grep -E "^(PASS|WARN|FAIL)[[:space:]]+$1([[:space:]]|$)" "$audit_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g'
+  { grep -E "^(PASS|WARN|FAIL)[[:space:]]+$1([[:space:]]|$)" "$audit_file" || true; } | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g'
+}
+
+last_match() {
+  local pattern="$1"
+  local file="$2"
+  { grep -E "$pattern" "$file" || true; } | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g'
+}
+
+joined_matches() {
+  local pattern="$1"
+  local file="$2"
+  { grep -E "$pattern" "$file" || true; } | awk '{ out = out (out == "" ? "" : "; ") $0 } END { print out }'
 }
 
 core_line_for() {
-  grep -E "$1" "$core_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g'
+  { grep -E "$1" "$core_file" || true; } | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g'
 }
 
 debug_line_for() {
   if [[ "$configuration" == "debug" ]]; then
     line_for "$1"
   else
-    grep -E "^(PASS|WARN|FAIL)[[:space:]]+$1([[:space:]]|$)" "$debug_audit_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g'
+    { grep -E "^(PASS|WARN|FAIL)[[:space:]]+$1([[:space:]]|$)" "$debug_audit_file" || true; } | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g'
   fi
 }
 
@@ -305,7 +317,7 @@ debug_has_pass "idle footprint" &&
   criterion "PROVEN" "debug idle CPU/RSS target" "$(debug_line_for "idle footprint")" ||
   criterion "MISSING" "debug idle CPU/RSS target" "$(debug_line_for "idle footprint")"
 
-packaged_state_summary="$(grep -E 'packagedStateHarness' "$packaged_state_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_state_summary="$(last_match 'packagedStateHarness' "$packaged_state_file")"
 if [[ "$packaged_state_status" -eq 0 &&
       "$packaged_state_summary" == *"ready=true"* &&
       "$packaged_state_summary" == *"authoritativeForPackagedApp=true"* &&
@@ -323,7 +335,7 @@ else
   criterion "FAILED" "packaged state, All Apps, and rule persistence via LaunchServices" "${packaged_state_summary:-exit=$packaged_state_status}"
 fi
 
-packaged_relaunch_summary="$(grep -E 'packagedRelaunchHarness' "$packaged_relaunch_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_relaunch_summary="$(last_match 'packagedRelaunchHarness' "$packaged_relaunch_file")"
 if [[ "$packaged_relaunch_status" -eq 0 &&
       "$packaged_relaunch_summary" == *"ready=true"* &&
       "$packaged_relaunch_summary" == *"authoritativeForPackagedApp=true"* &&
@@ -338,7 +350,7 @@ else
   criterion "FAILED" "packaged app quit/relaunch rule recovery via LaunchServices" "${packaged_relaunch_summary:-exit=$packaged_relaunch_status}"
 fi
 
-packaged_default_noop_summary="$(grep -E 'packagedDefaultNoopHarness' "$packaged_default_noop_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_default_noop_summary="$(last_match 'packagedDefaultNoopHarness' "$packaged_default_noop_file")"
 packaged_default_noop_taps_before="$(sed -E 's/.*tapCountBefore=([0-9]+).*/\1/' <<<"$packaged_default_noop_summary")"
 packaged_default_noop_taps_after="$(sed -E 's/.*tapCountAfterDefault=([0-9]+).*/\1/' <<<"$packaged_default_noop_summary")"
 if [[ "$packaged_default_noop_status" -eq 0 &&
@@ -353,7 +365,7 @@ else
   criterion "FAILED" "packaged default-rule no-op via LaunchServices" "${packaged_default_noop_summary:-exit=$packaged_default_noop_status}"
 fi
 
-single_app_gain_summary="$(grep -E 'processInspectorHarness|controllerHarness|singleAppGainMVP' "$single_app_gain_file" | awk '{ out = out (out == "" ? "" : "; ") $0 } END { print out }')"
+single_app_gain_summary="$(joined_matches 'processInspectorHarness|controllerHarness|singleAppGainMVP' "$single_app_gain_file")"
 if [[ "$single_app_gain_status" -eq 0 ]] &&
   [[ "$single_app_gain_summary" == *"processInspectorHarness"* ]] &&
   [[ "$single_app_gain_summary" == *"runningOutput=true"* ]] &&
@@ -374,7 +386,7 @@ else
   criterion "FAILED" "single-app gain MVP milestone" "${single_app_gain_summary:-exit=$single_app_gain_status}"
 fi
 
-packaged_single_app_gain_summary="$(grep -E 'packagedSingleAppGainHarness' "$packaged_single_app_gain_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_single_app_gain_summary="$(last_match 'packagedSingleAppGainHarness' "$packaged_single_app_gain_file")"
 if [[ "$packaged_single_app_gain_status" -eq 0 &&
       "$packaged_single_app_gain_summary" == *"ready=true"* &&
       "$packaged_single_app_gain_summary" == *"authoritativeForPackagedApp=true"* &&
@@ -395,7 +407,7 @@ else
   criterion "FAILED" "packaged single-app gain/reset via LaunchServices" "${packaged_single_app_gain_summary:-exit=$packaged_single_app_gain_status}"
 fi
 
-packaged_multi_app_gain_summary="$(grep -E 'packagedMultiAppGainHarness' "$packaged_multi_app_gain_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_multi_app_gain_summary="$(last_match 'packagedMultiAppGainHarness' "$packaged_multi_app_gain_file")"
 if [[ "$packaged_multi_app_gain_status" -eq 0 &&
       "$packaged_multi_app_gain_summary" == *"ready=true"* &&
       "$packaged_multi_app_gain_summary" == *"authoritativeForPackagedApp=true"* &&
@@ -417,7 +429,7 @@ else
   criterion "FAILED" "packaged multi-app gain/teardown via LaunchServices" "${packaged_multi_app_gain_summary:-exit=$packaged_multi_app_gain_status}"
 fi
 
-packaged_mute_summary="$(grep -E 'packagedMuteHarness' "$packaged_mute_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_mute_summary="$(last_match 'packagedMuteHarness' "$packaged_mute_file")"
 if [[ "$packaged_mute_status" -eq 0 &&
       "$packaged_mute_summary" == *"ready=true"* &&
       "$packaged_mute_summary" == *"authoritativeForPackagedApp=true"* &&
@@ -434,7 +446,7 @@ else
   criterion "FAILED" "packaged mute/unmute teardown via LaunchServices" "${packaged_mute_summary:-exit=$packaged_mute_status}"
 fi
 
-packaged_output_device_summary="$(grep -E 'packagedOutputDeviceHarness' "$packaged_output_device_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_output_device_summary="$(last_match 'packagedOutputDeviceHarness' "$packaged_output_device_file")"
 if [[ "$packaged_output_device_status" -eq 0 &&
       "$packaged_output_device_summary" == *"ready=true"* &&
       "$packaged_output_device_summary" == *"authoritativeForPackagedApp=true"* &&
@@ -457,7 +469,7 @@ else
 fi
 
 if [[ "$core_status" -eq 0 && "$skip_core" == false ]]; then
-  core_summary="$(grep -E 'stateHarness|processInspectorHarness|panelFocusHarness|relaunchHarness|defaultNoopHarness|gainHarness|muteHarness|controllerHarness|outputDeviceHarness|multiHarness|hotkeyHarness|voiceHarness|voiceShutdownHarness|voiceShutdownDuringStartHarness|voiceEarlyReleaseHarness|voiceHotkeyEarlyReleaseHarness|voiceRecorderFailureHarness|voiceSTTFailureHarness|voicePasteFailureHarness|silentCoreMVP ok' "$core_file" | awk '{ out = out (out == "" ? "" : "; ") $0 } END { print out }')"
+  core_summary="$(joined_matches 'stateHarness|processInspectorHarness|panelFocusHarness|relaunchHarness|defaultNoopHarness|gainHarness|muteHarness|controllerHarness|outputDeviceHarness|multiHarness|hotkeyHarness|voiceHarness|voiceShutdownHarness|voiceShutdownDuringStartHarness|voiceEarlyReleaseHarness|voiceHotkeyEarlyReleaseHarness|voiceRecorderFailureHarness|voiceSTTFailureHarness|voicePasteFailureHarness|silentCoreMVP ok' "$core_file")"
   criterion "PROVEN" "active Core Audio process detection, non-stealing panel focus policy, relaunch/output-device recovery, default-rule no-op, single-app gain/mute, multi-app gain, reset teardown, deterministic voice duck/insert/shutdown-cancel/startup-cancel/early-release/hotkey-early-release/failure cleanup" "$core_summary"
 elif [[ "$run_full" == true ]]; then
   if has_pass "full silent MVP gate"; then
@@ -469,7 +481,7 @@ else
   criterion "PARTIAL" "active app detection, single/multi-app gain, reset teardown, packaged UI gain" "Full silent gate not run by this report; use --full for current proof."
 fi
 
-apple_speech_summary="$(grep -E 'appleSpeechHarness' "$apple_speech_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+apple_speech_summary="$(last_match 'appleSpeechHarness' "$apple_speech_file")"
 if [[ "$apple_speech_status" -eq 0 && "$apple_speech_summary" == *"ready=true"* ]]; then
   criterion "PROVEN" "Apple Speech STTEngine baseline" "$apple_speech_summary"
 elif [[ "$apple_speech_status" -eq 66 ]]; then
@@ -478,7 +490,7 @@ else
   criterion "FAILED" "Apple Speech STTEngine baseline" "${apple_speech_summary:-exit=$apple_speech_status}"
 fi
 
-packaged_apple_speech_summary="$(grep -E 'packagedAppleSpeechHarness' "$packaged_apple_speech_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_apple_speech_summary="$(last_match 'packagedAppleSpeechHarness' "$packaged_apple_speech_file")"
 if [[ "$packaged_apple_speech_status" -eq 0 && "$packaged_apple_speech_summary" == *"ready=true"* && "$packaged_apple_speech_summary" == *"authoritativeForPackagedApp=true"* ]]; then
   criterion "PROVEN" "packaged Apple Speech STTEngine baseline via LaunchServices" "$packaged_apple_speech_summary"
 elif [[ "$packaged_apple_speech_status" -eq 66 ]]; then
@@ -487,7 +499,7 @@ else
   criterion "FAILED" "packaged Apple Speech STTEngine baseline via LaunchServices" "${packaged_apple_speech_summary:-exit=$packaged_apple_speech_status}"
 fi
 
-microphone_summary="$(grep -E 'microphoneRecorderHarness' "$microphone_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+microphone_summary="$(last_match 'microphoneRecorderHarness' "$microphone_file")"
 if [[ "$microphone_status" -eq 0 && "$microphone_summary" == *"ready=true"* ]]; then
   criterion "PROVEN" "real MicrophoneRecorder capture" "$microphone_summary"
 elif [[ "$microphone_status" -eq 66 ]]; then
@@ -496,7 +508,7 @@ else
   criterion "FAILED" "real MicrophoneRecorder capture" "${microphone_summary:-exit=$microphone_status}"
 fi
 
-packaged_microphone_summary="$(grep -E 'packagedMicrophoneRecorderHarness' "$packaged_microphone_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_microphone_summary="$(last_match 'packagedMicrophoneRecorderHarness' "$packaged_microphone_file")"
 if [[ "$packaged_microphone_status" -eq 0 && "$packaged_microphone_summary" == *"ready=true"* && "$packaged_microphone_summary" == *"authoritativeForPackagedApp=true"* ]]; then
   criterion "PROVEN" "packaged MicrophoneRecorder capture via LaunchServices" "$packaged_microphone_summary"
 elif [[ "$packaged_microphone_status" -eq 66 ]]; then
@@ -505,7 +517,7 @@ else
   criterion "FAILED" "packaged MicrophoneRecorder capture via LaunchServices" "${packaged_microphone_summary:-exit=$packaged_microphone_status}"
 fi
 
-voice_real_recorder_summary="$(grep -E 'voiceRealRecorderHarness' "$voice_real_recorder_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+voice_real_recorder_summary="$(last_match 'voiceRealRecorderHarness' "$voice_real_recorder_file")"
 if [[ "$voice_real_recorder_status" -eq 0 && "$voice_real_recorder_summary" == *"ready=true"* ]]; then
   criterion "PROVEN" "VoiceInputController real MicrophoneRecorder flow with fake STT/paste" "$voice_real_recorder_summary"
 elif [[ "$voice_real_recorder_status" -eq 66 ]]; then
@@ -514,7 +526,7 @@ else
   criterion "FAILED" "VoiceInputController real MicrophoneRecorder flow with fake STT/paste" "${voice_real_recorder_summary:-exit=$voice_real_recorder_status}"
 fi
 
-packaged_mic_denied_summary="$(grep -E 'packagedVoiceMicDeniedHarness' "$packaged_mic_denied_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_mic_denied_summary="$(last_match 'packagedVoiceMicDeniedHarness' "$packaged_mic_denied_file")"
 if [[ "$packaged_mic_denied_status" -eq 0 &&
       "$packaged_mic_denied_summary" == *"ready=true"* &&
       "$packaged_mic_denied_summary" == *"authoritativeForPackagedApp=true"* &&
@@ -533,7 +545,7 @@ else
   criterion "FAILED" "packaged Mic-denied voice cleanup via LaunchServices" "${packaged_mic_denied_summary:-exit=$packaged_mic_denied_status}"
 fi
 
-packaged_speech_denied_summary="$(grep -E 'packagedVoiceSpeechDeniedHarness' "$packaged_speech_denied_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_speech_denied_summary="$(last_match 'packagedVoiceSpeechDeniedHarness' "$packaged_speech_denied_file")"
 if [[ "$packaged_speech_denied_status" -eq 0 &&
       "$packaged_speech_denied_summary" == *"ready=true"* &&
       "$packaged_speech_denied_summary" == *"authoritativeForPackagedApp=true"* &&
@@ -556,7 +568,7 @@ else
   criterion "FAILED" "packaged Speech-denied voice cleanup via LaunchServices" "${packaged_speech_denied_summary:-exit=$packaged_speech_denied_status}"
 fi
 
-packaged_accessibility_denied_summary="$(grep -E 'packagedVoiceAccessibilityDeniedHarness' "$packaged_accessibility_denied_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_accessibility_denied_summary="$(last_match 'packagedVoiceAccessibilityDeniedHarness' "$packaged_accessibility_denied_file")"
 if [[ "$packaged_accessibility_denied_status" -eq 0 &&
       "$packaged_accessibility_denied_summary" == *"ready=true"* &&
       "$packaged_accessibility_denied_summary" == *"authoritativeForPackagedApp=true"* &&
@@ -580,7 +592,7 @@ else
   criterion "FAILED" "packaged Accessibility-denied voice cleanup via LaunchServices" "${packaged_accessibility_denied_summary:-exit=$packaged_accessibility_denied_status}"
 fi
 
-packaged_hotkey_summary="$(grep -E 'packagedHotkeyHarness' "$packaged_hotkey_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_hotkey_summary="$(last_match 'packagedHotkeyHarness' "$packaged_hotkey_file")"
 if [[ "$packaged_hotkey_status" -eq 0 &&
       "$packaged_hotkey_summary" == *"ready=true"* &&
       "$packaged_hotkey_summary" == *"authoritativeForPackagedApp=true"* &&
@@ -591,7 +603,7 @@ else
   criterion "FAILED" "packaged push-to-talk hotkey registration via LaunchServices" "${packaged_hotkey_summary:-exit=$packaged_hotkey_status}"
 fi
 
-packaged_voice_flow_summary="$(grep -E 'packagedVoiceHarness' "$packaged_voice_flow_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_voice_flow_summary="$(last_match 'packagedVoiceHarness' "$packaged_voice_flow_file")"
 if [[ "$packaged_voice_flow_status" -eq 0 &&
       "$packaged_voice_flow_summary" == *"ready=true"* &&
       "$packaged_voice_flow_summary" == *"authoritativeForPackagedApp=true"* &&
@@ -605,7 +617,7 @@ else
   criterion "FAILED" "packaged deterministic voice duck/restore/insert flow via LaunchServices" "${packaged_voice_flow_summary:-exit=$packaged_voice_flow_status}"
 fi
 
-text_injector_summary="$(grep -E 'textInjectorHarness' "$text_injector_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+text_injector_summary="$(last_match 'textInjectorHarness' "$text_injector_file")"
 if [[ "$text_injector_status" -eq 0 && "$text_injector_summary" == *"ready=true"* ]]; then
   criterion "PROVEN" "PasteboardTextInjector Accessibility readiness" "$text_injector_summary"
 elif [[ "$text_injector_status" -eq 66 ]]; then
@@ -614,7 +626,7 @@ else
   criterion "FAILED" "PasteboardTextInjector Accessibility readiness" "${text_injector_summary:-exit=$text_injector_status}"
 fi
 
-packaged_text_injector_summary="$(grep -E 'packagedTextInjectorHarness' "$packaged_text_injector_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+packaged_text_injector_summary="$(last_match 'packagedTextInjectorHarness' "$packaged_text_injector_file")"
 if [[ "$packaged_text_injector_status" -eq 0 && "$packaged_text_injector_summary" == *"ready=true"* && "$packaged_text_injector_summary" == *"authoritativeForPackagedApp=true"* ]]; then
   criterion "PROVEN" "packaged PasteboardTextInjector Accessibility readiness via LaunchServices" "$packaged_text_injector_summary"
 elif [[ "$packaged_text_injector_status" -eq 66 ]]; then
@@ -623,7 +635,7 @@ else
   criterion "FAILED" "packaged PasteboardTextInjector Accessibility readiness via LaunchServices" "${packaged_text_injector_summary:-exit=$packaged_text_injector_status}"
 fi
 
-launchservices_permissions_summary="$(grep -E 'processVoicePermissionsLaunchServices' "$launchservices_permissions_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+launchservices_permissions_summary="$(last_match 'processVoicePermissionsLaunchServices' "$launchservices_permissions_file")"
 if [[ "$launchservices_permissions_status" -eq 0 && "$launchservices_permissions_summary" == *"ready=true"* ]]; then
   criterion "READY" "packaged voice permissions via LaunchServices without panel UI" "$launchservices_permissions_summary"
 elif [[ "$launchservices_permissions_status" -eq 66 ]]; then
@@ -632,7 +644,7 @@ else
   criterion "FAILED" "packaged voice permissions via LaunchServices without panel UI" "${launchservices_permissions_summary:-exit=$launchservices_permissions_status}"
 fi
 
-automation_status_summary="$(grep -E 'packagedAutomationStatus' "$automation_status_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+automation_status_summary="$(last_match 'packagedAutomationStatus' "$automation_status_file")"
 if [[ "$automation_status_status" -eq 0 ]] &&
   [[ "$automation_status_summary" == *"ready=true"* ]] &&
   [[ "$automation_status_summary" == *"unauthorizedIgnored=true"* ]] &&
@@ -642,7 +654,7 @@ else
   criterion "FAILED" "packaged no-panel automation status channel" "${automation_status_summary:-exit=$automation_status_status}"
 fi
 
-automation_denied_start_summary="$(grep -E 'packagedAutomationDeniedStart' "$automation_denied_start_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+automation_denied_start_summary="$(last_match 'packagedAutomationDeniedStart' "$automation_denied_start_file")"
 if [[ "$automation_denied_start_status" -eq 0 ]] &&
   [[ "$automation_denied_start_summary" == *"ready=true"* ]] &&
   [[ "$automation_denied_start_summary" == *"authoritativeForPackagedApp=true"* ]] &&
@@ -657,7 +669,7 @@ else
   criterion "FAILED" "packaged automation denied-start cleanup via LaunchServices" "${automation_denied_start_summary:-exit=$automation_denied_start_status}"
 fi
 
-live_voice_verifier_summary="$(grep -E 'liveVoiceMVP=' "$live_voice_verifier_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+live_voice_verifier_summary="$(last_match 'liveVoiceMVP=' "$live_voice_verifier_file")"
 if [[ "$live_voice_verifier_status" -eq 0 && "$live_voice_verifier_summary" == *"liveVoiceMVP=ready"* ]]; then
   criterion "READY" "final live voice MVP verifier preflight" "$live_voice_verifier_summary"
 elif [[ "$live_voice_verifier_status" -eq 66 ]]; then
@@ -689,7 +701,7 @@ else
   criterion "MISSING" "idle and active MiniMix benchmark rows" "${benchmark_rows:-no MiniMix benchmark rows in audit output}"
 fi
 
-competitor_inventory_summary="$(grep -E '^audioCompetitor app=' "$competitor_inventory_file" | awk '{ out = out (out == "" ? "" : "; ") $0 } END { print out }')"
+competitor_inventory_summary="$(joined_matches '^audioCompetitor app=' "$competitor_inventory_file")"
 if [[ "$competitor_inventory_status" -eq 0 ]] &&
   [[ "$competitor_inventory_summary" == *"app=SoundSource"* ]] &&
   [[ "$competitor_inventory_summary" == *"app=FineTune"* ]] &&

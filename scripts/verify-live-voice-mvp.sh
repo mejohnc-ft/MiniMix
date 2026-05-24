@@ -17,6 +17,7 @@ Safe final live-voice MVP orchestrator.
 
 Default mode is non-prompting and non-recording:
   - checks local code-signing identity status
+  - checks packaged app code-signing stability
   - checks packaged no-panel automation status through the minimix:// URL scheme
   - checks Apple Speech readiness without requesting authorization
   - checks packaged Apple Speech and Accessibility readiness without recording or pasting
@@ -27,8 +28,9 @@ Accessibility permissions through LaunchServices without opening the MiniMix
 panel. The script refuses ad-hoc signed builds unless --allow-adhoc is also
 passed.
 
---run-live runs the live TextEdit paste proof after readiness is true. It opens
-TextEdit and records from the microphone; speak a short phrase when prompted.
+--run-live runs the live TextEdit paste proof after readiness is true. It
+refuses ad-hoc signed builds unless --allow-adhoc is passed, opens TextEdit,
+and records from the microphone; speak a short phrase when prompted.
 
 --trigger chooses the live proof trigger: automation, hotkey, or ui. Default
 is automation, which uses MiniMix URL events and does not open the panel.
@@ -83,6 +85,14 @@ if [[ "$trigger" != "hotkey" && "$trigger" != "automation" && "$trigger" != "ui"
 fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+app="$repo_root/build/MiniMix.app"
+build_log="$(mktemp -t minimix-live-voice-build.XXXXXX)"
+
+cleanup() {
+  rm -f "$build_log"
+}
+trap cleanup EXIT
+
 cd "$repo_root"
 
 echo "== MiniMix live voice MVP proof =="
@@ -91,6 +101,25 @@ echo "configuration=$configuration trigger=$trigger requestPermissions=$request_
 echo
 echo "== Code signing identity =="
 scripts/setup-local-codesign-identity.sh
+
+echo
+echo "== Packaged code signature =="
+if ! scripts/build-app-bundle.sh "$configuration" >"$build_log" 2>&1; then
+  cat "$build_log" >&2
+  exit 4
+fi
+signature="$(codesign -dv "$app" 2>&1 || true)"
+signature_summary="$(printf '%s\n' "$signature" | grep -E 'Signature=|Authority=|TeamIdentifier=|CodeDirectory' | tr '\n' ' ' | sed 's/[[:space:]][[:space:]]*/ /g; s/ $//')"
+is_adhoc=false
+if [[ "$signature" == *"Signature=adhoc"* || "$signature" == *"TeamIdentifier=not set"* ]]; then
+  is_adhoc=true
+fi
+echo "codeSignature ${signature_summary:-unavailable}"
+
+if [[ "$run_live" == true && "$is_adhoc" == true && "$allow_adhoc" != true ]]; then
+  echo "liveVoiceMVP=false reason=ad-hoc signature would make live packaged voice proof unstable; pass --allow-adhoc only for intentional ad-hoc testing" >&2
+  exit 65
+fi
 
 echo
 echo "== Packaged automation status =="
