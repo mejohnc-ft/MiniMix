@@ -18,7 +18,8 @@ Safe final live-voice MVP orchestrator.
 Default mode is non-prompting and non-recording:
   - checks local code-signing identity status
   - checks packaged no-panel automation status through the minimix:// URL scheme
-  - checks Apple Speech baseline readiness without requesting authorization
+  - checks Apple Speech readiness without requesting authorization
+  - checks packaged Apple Speech and Accessibility readiness without recording or pasting
   - checks packaged voice permission state through LaunchServices without opening the MiniMix panel
 
 --request-permissions asks the packaged app to request microphone, Speech, and
@@ -130,6 +131,37 @@ if [[ "$apple_speech_status" -ne 0 && "$apple_speech_status" -ne 66 ]]; then
 fi
 
 echo
+echo "== Packaged Apple Speech baseline =="
+packaged_apple_speech_status=0
+scripts/probe-packaged-apple-speech-baseline-launchservices.sh "$configuration" || packaged_apple_speech_status=$?
+if [[ "$packaged_apple_speech_status" -ne 0 && "$packaged_apple_speech_status" -ne 66 ]]; then
+  echo "liveVoiceMVP=false reason=packaged Apple Speech baseline failed status=$packaged_apple_speech_status" >&2
+  exit "$packaged_apple_speech_status"
+fi
+
+echo
+echo "== Packaged Accessibility readiness =="
+packaged_accessibility_status=0
+scripts/probe-packaged-text-injector-readiness-launchservices.sh "$configuration" || packaged_accessibility_status=$?
+if [[ "$packaged_accessibility_status" -ne 0 && "$packaged_accessibility_status" -ne 66 ]]; then
+  echo "liveVoiceMVP=false reason=packaged Accessibility readiness failed status=$packaged_accessibility_status" >&2
+  exit "$packaged_accessibility_status"
+fi
+
+if [[ "$trigger" == "hotkey" ]]; then
+  echo
+  echo "== Packaged hotkey readiness =="
+  packaged_hotkey_status=0
+  scripts/probe-packaged-hotkey-registration-launchservices.sh "$configuration" || packaged_hotkey_status=$?
+  if [[ "$packaged_hotkey_status" -ne 0 ]]; then
+    echo "liveVoiceMVP=false reason=packaged hotkey registration failed status=$packaged_hotkey_status" >&2
+    exit "$packaged_hotkey_status"
+  fi
+else
+  packaged_hotkey_status=0
+fi
+
+echo
 echo "== Live voice readiness =="
 readiness_status=0
 scripts/probe-live-voice-readiness.sh "$configuration" || readiness_status=$?
@@ -139,7 +171,7 @@ if [[ "$readiness_status" -ne 0 && "$readiness_status" -ne 66 ]]; then
 fi
 
 if [[ "$run_live" != true ]]; then
-  if [[ "$readiness_status" -eq 0 && "$apple_speech_status" -eq 0 ]]; then
+  if [[ "$readiness_status" -eq 0 && "$packaged_apple_speech_status" -eq 0 && "$packaged_accessibility_status" -eq 0 ]]; then
     echo "liveVoiceMVP=ready reason=run with --run-live to record and prove paste"
     exit 0
   fi
@@ -150,6 +182,25 @@ fi
 
 if [[ "$readiness_status" -ne 0 ]]; then
   echo "liveVoiceMVP=false reason=packaged voice permissions are not ready" >&2
+  exit 66
+fi
+
+if [[ "$packaged_apple_speech_status" -ne 0 ]]; then
+  echo "liveVoiceMVP=false reason=packaged Apple Speech baseline is not ready" >&2
+  exit 66
+fi
+
+if [[ "$packaged_accessibility_status" -ne 0 ]]; then
+  echo "liveVoiceMVP=false reason=packaged Accessibility paste readiness is not ready" >&2
+  exit 66
+fi
+
+echo
+echo "== Packaged microphone recorder =="
+packaged_microphone_status=0
+scripts/probe-packaged-microphone-recorder-launchservices.sh "$configuration" || packaged_microphone_status=$?
+if [[ "$packaged_microphone_status" -ne 0 ]]; then
+  echo "liveVoiceMVP=false reason=packaged MicrophoneRecorder is not ready status=$packaged_microphone_status" >&2
   exit 66
 fi
 

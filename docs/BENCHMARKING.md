@@ -281,7 +281,7 @@ scripts/probe-live-voice-paste.sh release
 ```
 
 `probe-live-voice-paste.sh` does not play audio. It opens a blank TextEdit document, records for `MINIMIX_LIVE_VOICE_SECONDS` seconds, and verifies that Apple Speech output was pasted into TextEdit. Speak a short phrase while the script is recording. The default `automation` trigger is the lowest-focus path; it launches MiniMix with an ephemeral token and starts/stops dictation through token-gated URL events without opening the panel or synthesizing the global hotkey. After that pipeline proof passes, run `MINIMIX_LIVE_VOICE_TRIGGER=hotkey scripts/probe-live-voice-paste.sh release` to prove the actual push-to-talk hotkey path.
-`verify-live-voice-mvp.sh` is the preferred final orchestrator: default mode checks signing and Apple Speech without opening the MiniMix panel, and `--run-live` records and proves paste only after readiness is true.
+`verify-live-voice-mvp.sh` is the preferred final orchestrator: default mode checks signing, packaged permission state, packaged Apple Speech, and packaged Accessibility without opening the MiniMix panel or recording. `--run-live` records and proves paste only after readiness is true, and it validates the packaged microphone recorder immediately before the live paste run.
 
 Use the UI-trigger fallback only when you specifically need to prove the same packaged record/transcribe/paste pipeline through MiniMix's Start/Stop buttons:
 

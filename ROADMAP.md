@@ -125,6 +125,7 @@ Exit criteria:
 - Validate packaged permission status without changing TCC grants with `scripts/probe-packaged-voice-permissions-launchservices.sh`.
 - Validate packaged Mic, Speech, and Accessibility readiness individually with `scripts/probe-packaged-microphone-recorder-launchservices.sh`, `scripts/probe-packaged-apple-speech-baseline-launchservices.sh`, and `scripts/probe-packaged-text-injector-readiness-launchservices.sh`.
 - Gate live voice testing with `scripts/probe-live-voice-readiness.sh`.
+- Run the final no-panel live voice orchestrator with `scripts/verify-live-voice-mvp.sh`.
 
 Exit criteria:
 - Voice input can be used from another app without opening a MiniMix window.
