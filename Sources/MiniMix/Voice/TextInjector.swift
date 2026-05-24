@@ -24,8 +24,7 @@ struct PasteboardTextInjector: TextInjecting {
             return
         }
 
-        let promptKey = "AXTrustedCheckOptionPrompt"
-        let options = [promptKey: true] as CFDictionary
+        let options = ["AXTrustedCheckOptionPrompt": false] as CFDictionary
         guard AXIsProcessTrustedWithOptions(options) else {
             throw TextInjectionError.accessibilityNotTrusted
         }

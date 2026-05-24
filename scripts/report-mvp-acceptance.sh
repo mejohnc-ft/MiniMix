@@ -254,6 +254,10 @@ else
   criterion "MISSING" "local MiniMix signing identity is available for auto-selection" "$(line_for "local signing readiness")"
 fi
 
+has_pass "passive voice runtime permissions" &&
+  criterion "PROVEN" "runtime voice paths do not request permissions" "$(line_for "passive voice runtime permissions")" ||
+  criterion "MISSING" "runtime voice paths do not request permissions" "$(line_for "passive voice runtime permissions")"
+
 has_pass "menubar-only plist" &&
   criterion "PROVEN" "menubar-only packaged app" "$(line_for "menubar-only plist")" ||
   criterion "MISSING" "menubar-only packaged app" "$(line_for "menubar-only plist")"

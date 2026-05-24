@@ -238,6 +238,7 @@ scripts/probe-audio-competitor-inventory.sh
 `probe-packaged-automation-status.sh` proves the packaged no-panel automation status channel used by the lowest-focus live voice trigger, including that untokened automation URLs are ignored.
 `probe-packaged-voice-permissions-launchservices.sh` launches `MiniMix.app` in the background through LaunchServices and captures packaged permission state without opening the MiniMix panel.
 `request-packaged-voice-permissions-launchservices.sh` is the preferred opt-in request path because it asks the packaged app to request Mic, Speech, and Accessibility without opening the MiniMix panel.
+Normal MiniMix runtime voice paths do not request TCC prompts. Microphone capture, Apple Speech transcription, and text insertion fail fast when permission is missing; only the explicit permission requester path prompts.
 `probe-audio-competitor-inventory.sh` is read-only and reports whether SoundSource, FineTune, and superwhisper are installed/running, plus matching launch items, HAL plugins, and sleep assertions.
 
 Request packaged app voice permissions without starting dictation:

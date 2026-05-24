@@ -43,13 +43,7 @@ final class AppleSpeechSTTEngine: STTEngine {
     }
 
     func load() async throws {
-        let status = await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { status in
-                continuation.resume(returning: status)
-            }
-        }
-
-        guard status == .authorized else {
+        guard Self.authorizationStatus == .authorized else {
             throw AppleSpeechError.recognitionDenied
         }
 

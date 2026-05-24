@@ -139,6 +139,8 @@ Packaged panel automation is opt-in because it opens MiniMix and clicks the UI. 
 
 Headless direct-executable permission diagnostics are not authoritative for packaged app TCC state. macOS can report different mic, Speech, and Accessibility status when the same binary is launched directly versus through `MiniMix.app`. Use `scripts/probe-packaged-voice-permissions-launchservices.sh release` for a background LaunchServices-launched packaged status check that does not open the MiniMix panel; use the opt-in packaged panel probes only when you need to inspect or click UI controls.
 
+Normal record/transcribe/paste runtime paths are passive about macOS privacy. They fail fast when Mic, Speech, or Accessibility is missing instead of requesting TCC prompts. Permission prompts are isolated to the explicit `Permissions` button and `scripts/request-packaged-voice-permissions-launchservices.sh`.
+
 `probe-packaged-app-state-launchservices.sh` proves the packaged app's state rules through LaunchServices: active-only filtering, All Apps visibility, default no-op behavior, mute persistence/removal, persisted rule reload visibility, disappeared-app cleanup, and reset removal.
 `probe-packaged-app-relaunch-launchservices.sh` proves the packaged app's rule recovery across app disappearance/relaunch: saved rule application, session removal on disappearance, reapplication to the relaunched process, and reset cleanup.
 `probe-packaged-single-app-gain-launchservices.sh` proves the single-app gain/reset path through `MiniMix.app` launched by LaunchServices: active app detection, process tap creation, gain application, rule persistence, reset teardown, and no Core Audio residue.

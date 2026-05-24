@@ -155,6 +155,18 @@ else
   fail "local signing readiness" "$codesign_readiness"
 fi
 
+runtime_permission_requests="$(
+  rg -n 'requestAccess|requestAuthorization|AXTrustedCheckOptionPrompt": true' \
+    Sources/MiniMix/Voice/AppleSpeechSTTEngine.swift \
+    Sources/MiniMix/Voice/MicrophoneRecorder.swift \
+    Sources/MiniMix/Voice/TextInjector.swift || true
+)"
+if [[ -z "$runtime_permission_requests" ]]; then
+  pass "passive voice runtime permissions" "runtime record/transcribe/paste paths do not request TCC prompts"
+else
+  fail "passive voice runtime permissions" "$(printf '%s' "$runtime_permission_requests" | tr '\n' '; ' | sed 's/[[:space:]][[:space:]]*/ /g; s/[;[:space:]]*$//')"
+fi
+
 if find /Library/Audio/Plug-Ins/HAL -maxdepth 3 -iname '*MiniMix*' -print 2>/dev/null | grep -q .; then
   fail "no MiniMix HAL driver" "MiniMix driver found"
 else
