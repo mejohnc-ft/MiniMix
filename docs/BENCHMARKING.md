@@ -218,6 +218,7 @@ scripts/probe-microphone-recorder.sh
 scripts/probe-packaged-microphone-recorder-launchservices.sh release
 scripts/probe-packaged-voice-mic-denied-launchservices.sh release
 scripts/probe-packaged-voice-speech-denied-launchservices.sh release
+scripts/probe-packaged-voice-accessibility-denied-launchservices.sh release
 scripts/probe-packaged-voice-flow-launchservices.sh release
 scripts/probe-text-injector-readiness.sh
 scripts/probe-packaged-text-injector-readiness-launchservices.sh release
@@ -235,6 +236,7 @@ scripts/probe-audio-competitor-inventory.sh
 `probe-packaged-microphone-recorder-launchservices.sh` checks the microphone recorder path from the packaged app identity through LaunchServices, which is the authoritative microphone TCC context for the final app.
 `probe-packaged-voice-mic-denied-launchservices.sh` proves the packaged app restores ducked audio, avoids STT/paste, and leaves no taps when the real microphone recorder is denied by packaged Mic permission. It exits pending once packaged Mic permission is already authorized.
 `probe-packaged-voice-speech-denied-launchservices.sh` proves the packaged app restores ducked audio, removes the captured file, avoids paste, and leaves no taps when the real Apple Speech engine is denied. It exits pending once packaged Speech permission is already authorized.
+`probe-packaged-voice-accessibility-denied-launchservices.sh` proves the packaged app restores ducked audio, unloads STT, removes the captured file, and leaves no taps when the real paste injector is denied by packaged Accessibility trust. It exits pending once packaged Accessibility is already trusted.
 `probe-voice-real-recorder-flow.sh` proves the `VoiceInputController` path around the real microphone recorder while keeping STT and paste mocked, so it does not prompt for Apple Speech or Accessibility and does not paste into the focused app.
 `probe-packaged-hotkey-registration-launchservices.sh` proves `Control-Option-Space` registration and release from the packaged app identity through LaunchServices without synthesizing the shortcut.
 `probe-packaged-voice-flow-launchservices.sh` proves the deterministic voice duck/restore/insert path from the packaged app identity through LaunchServices while keeping recorder, STT, and paste mocked.

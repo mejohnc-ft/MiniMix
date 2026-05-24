@@ -69,6 +69,7 @@ packaged_microphone_file="$(mktemp -t minimix-packaged-microphone.XXXXXX)"
 voice_real_recorder_file="$(mktemp -t minimix-voice-real-recorder.XXXXXX)"
 packaged_mic_denied_file="$(mktemp -t minimix-packaged-mic-denied.XXXXXX)"
 packaged_speech_denied_file="$(mktemp -t minimix-packaged-speech-denied.XXXXXX)"
+packaged_accessibility_denied_file="$(mktemp -t minimix-packaged-accessibility-denied.XXXXXX)"
 packaged_hotkey_file="$(mktemp -t minimix-packaged-hotkey.XXXXXX)"
 packaged_voice_flow_file="$(mktemp -t minimix-packaged-voice-flow.XXXXXX)"
 text_injector_file="$(mktemp -t minimix-text-injector.XXXXXX)"
@@ -77,7 +78,7 @@ launchservices_permissions_file="$(mktemp -t minimix-ls-permissions.XXXXXX)"
 automation_status_file="$(mktemp -t minimix-automation-status.XXXXXX)"
 automation_denied_start_file="$(mktemp -t minimix-automation-denied-start.XXXXXX)"
 competitor_inventory_file="$(mktemp -t minimix-competitors.XXXXXX)"
-trap 'rm -f "$audit_file" "$debug_audit_file" "$core_file" "$packaged_state_file" "$packaged_relaunch_file" "$packaged_default_noop_file" "$single_app_gain_file" "$packaged_single_app_gain_file" "$packaged_multi_app_gain_file" "$packaged_mute_file" "$packaged_output_device_file" "$apple_speech_file" "$packaged_apple_speech_file" "$microphone_file" "$packaged_microphone_file" "$voice_real_recorder_file" "$packaged_mic_denied_file" "$packaged_speech_denied_file" "$packaged_hotkey_file" "$packaged_voice_flow_file" "$text_injector_file" "$packaged_text_injector_file" "$launchservices_permissions_file" "$automation_status_file" "$automation_denied_start_file" "$competitor_inventory_file"; "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true; pkill -x afplay >/dev/null 2>&1 || true' EXIT
+trap 'rm -f "$audit_file" "$debug_audit_file" "$core_file" "$packaged_state_file" "$packaged_relaunch_file" "$packaged_default_noop_file" "$single_app_gain_file" "$packaged_single_app_gain_file" "$packaged_multi_app_gain_file" "$packaged_mute_file" "$packaged_output_device_file" "$apple_speech_file" "$packaged_apple_speech_file" "$microphone_file" "$packaged_microphone_file" "$voice_real_recorder_file" "$packaged_mic_denied_file" "$packaged_speech_denied_file" "$packaged_accessibility_denied_file" "$packaged_hotkey_file" "$packaged_voice_flow_file" "$text_injector_file" "$packaged_text_injector_file" "$launchservices_permissions_file" "$automation_status_file" "$automation_denied_start_file" "$competitor_inventory_file"; "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true; pkill -x afplay >/dev/null 2>&1 || true' EXIT
 
 audit_args=(--configuration "$configuration")
 if [[ "$run_full" == true ]]; then
@@ -145,6 +146,9 @@ scripts/probe-packaged-voice-mic-denied-launchservices.sh "$configuration" >"$pa
 
 packaged_speech_denied_status=0
 scripts/probe-packaged-voice-speech-denied-launchservices.sh "$configuration" >"$packaged_speech_denied_file" 2>&1 || packaged_speech_denied_status=$?
+
+packaged_accessibility_denied_status=0
+scripts/probe-packaged-voice-accessibility-denied-launchservices.sh "$configuration" >"$packaged_accessibility_denied_file" 2>&1 || packaged_accessibility_denied_status=$?
 
 packaged_hotkey_status=0
 scripts/probe-packaged-hotkey-registration-launchservices.sh "$configuration" >"$packaged_hotkey_file" 2>&1 || packaged_hotkey_status=$?
@@ -548,6 +552,30 @@ else
   criterion "FAILED" "packaged Speech-denied voice cleanup via LaunchServices" "${packaged_speech_denied_summary:-exit=$packaged_speech_denied_status}"
 fi
 
+packaged_accessibility_denied_summary="$(grep -E 'packagedVoiceAccessibilityDeniedHarness' "$packaged_accessibility_denied_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
+if [[ "$packaged_accessibility_denied_status" -eq 0 &&
+      "$packaged_accessibility_denied_summary" == *"ready=true"* &&
+      "$packaged_accessibility_denied_summary" == *"authoritativeForPackagedApp=true"* &&
+      "$packaged_accessibility_denied_summary" == *"activeWhileRecording=1"* &&
+      "$packaged_accessibility_denied_summary" == *"duckedVolume=0.35"* &&
+      "$packaged_accessibility_denied_summary" == *"sttLoadedWhileRecording=false"* &&
+      "$packaged_accessibility_denied_summary" == *"activeAfterStop=0"* &&
+      "$packaged_accessibility_denied_summary" == *"restoredVolume=1.0"* &&
+      "$packaged_accessibility_denied_summary" == *"status=idle"* &&
+      "$packaged_accessibility_denied_summary" == *"pasteDenied=true"* &&
+      "$packaged_accessibility_denied_summary" == *"insertedText=nil"* &&
+      "$packaged_accessibility_denied_summary" == *"sttLoadedAfterStop=false"* &&
+      "$packaged_accessibility_denied_summary" == *"recorderStarted=true"* &&
+      "$packaged_accessibility_denied_summary" == *"recorderStopped=true"* &&
+      "$packaged_accessibility_denied_summary" == *"recordingFileExists=false"* &&
+      "$packaged_accessibility_denied_summary" == *"tapCount=0"* ]]; then
+  criterion "PROVEN" "packaged Accessibility-denied voice cleanup via LaunchServices" "$packaged_accessibility_denied_summary"
+elif [[ "$packaged_accessibility_denied_status" -eq 66 ]]; then
+  criterion "PENDING" "packaged Accessibility-denied voice cleanup via LaunchServices" "${packaged_accessibility_denied_summary:-denied proof not applicable after packaged Accessibility trust is ready}"
+else
+  criterion "FAILED" "packaged Accessibility-denied voice cleanup via LaunchServices" "${packaged_accessibility_denied_summary:-exit=$packaged_accessibility_denied_status}"
+fi
+
 packaged_hotkey_summary="$(grep -E 'packagedHotkeyHarness' "$packaged_hotkey_file" | tail -n 1 | sed 's/[[:space:]][[:space:]]*/ /g')"
 if [[ "$packaged_hotkey_status" -eq 0 &&
       "$packaged_hotkey_summary" == *"ready=true"* &&
@@ -756,6 +784,11 @@ fi
 if [[ "$packaged_speech_denied_status" -ne 0 && "$packaged_speech_denied_status" -ne 66 ]]; then
   echo "mvpComplete=false reason=packaged Speech-denied voice cleanup failed"
   exit "$packaged_speech_denied_status"
+fi
+
+if [[ "$packaged_accessibility_denied_status" -ne 0 && "$packaged_accessibility_denied_status" -ne 66 ]]; then
+  echo "mvpComplete=false reason=packaged Accessibility-denied voice cleanup failed"
+  exit "$packaged_accessibility_denied_status"
 fi
 
 if [[ "$packaged_voice_flow_status" -ne 0 ]]; then

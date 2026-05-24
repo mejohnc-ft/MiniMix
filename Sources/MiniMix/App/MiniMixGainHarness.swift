@@ -33,6 +33,7 @@ enum MiniMixGainHarness {
             CommandLine.arguments.contains("--voice-recorder-failure-harness") ||
             CommandLine.arguments.contains("--voice-mic-denied-harness") ||
             CommandLine.arguments.contains("--voice-speech-denied-harness") ||
+            CommandLine.arguments.contains("--voice-accessibility-denied-harness") ||
             CommandLine.arguments.contains("--voice-paste-failure-harness") ||
             CommandLine.arguments.contains("--voice-stt-failure-harness")
     }
@@ -73,6 +74,10 @@ enum MiniMixGainHarness {
 
         if CommandLine.arguments.contains("--voice-speech-denied-harness") {
             return runVoiceSpeechDeniedHarness()
+        }
+
+        if CommandLine.arguments.contains("--voice-accessibility-denied-harness") {
+            return runVoiceAccessibilityDeniedHarness()
         }
 
         if CommandLine.arguments.contains("--voice-paste-failure-harness") {
@@ -2234,6 +2239,131 @@ enum MiniMixGainHarness {
         }
 
         emitHarnessLine("voiceSpeechDeniedHarness activeWhileRecording=\(activeWhileRecording) duckedVolume=\(duckedVolume ?? -1) sttLoadedWhileRecording=\(sttLoadedWhileRecording) activeAfterStop=\(activeAfterStop) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatusAfterStop) insertedText=\(insertedText ?? "nil") sttLoadedAfterStop=\(sttLoadedAfterStop) recorderStarted=\(recorderStatus.didStart) recorderStopped=\(recorderStatus.didStop) recordingFileExists=\(recordingFileExists) error=\(errorMessage ?? "nil") tapCount=\(tapCount)")
+        return 0
+    }
+
+    @MainActor
+    private static func runVoiceAccessibilityDeniedHarness() -> Int32 {
+        let options = ["AXTrustedCheckOptionPrompt": false] as CFDictionary
+        guard !AXIsProcessTrustedWithOptions(options) else {
+            emitHarnessLine("voiceAccessibilityDeniedHarness ready=false reason=accessibilityTrusted")
+            return 66
+        }
+
+        let app = ManagedAudioApp(
+            id: "com.example.accessibility-denied",
+            displayName: "Accessibility Denied Harness",
+            bundleIdentifier: "com.example.accessibility-denied",
+            processIdentifier: getpid(),
+            audioObjectID: 1,
+            volume: 1,
+            isMuted: false,
+            isProducingAudio: true,
+            isDucked: false
+        )
+
+        let recorder = TrackingHarnessMicrophoneRecorder()
+        let sttEngine = HarnessSTTEngine(transcript: "MiniMix accessibility denied harness")
+        let model = MiniMixModel(
+            mixerController: MixerController(
+                appProvider: HarnessRunningAudioAppProvider(apps: [app]),
+                ruleStore: HarnessAudioRuleStore(),
+                audioEngine: HarnessTrackingAudioEngine()
+            ),
+            voiceController: VoiceInputController(
+                recorder: recorder,
+                sttEngine: sttEngine,
+                textInjector: PasteboardTextInjector()
+            ),
+            hotkeyController: HarnessHotkeyController()
+        )
+
+        model.startDictation()
+        spinRunLoop(for: 0.2)
+
+        let activeWhileRecording = model.mixer.activeAudioSessionCount
+        let duckedVolume = model.mixer.apps.first?.volume
+        let voiceStatusDuringRecording = model.voice.status
+        let sttLoadedWhileRecording = sttEngine.isLoaded
+
+        model.stopDictation()
+        spinRunLoop(for: 0.4)
+
+        let activeAfterStop = model.mixer.activeAudioSessionCount
+        let restoredVolume = model.mixer.apps.first?.volume
+        let voiceStatusAfterStop = model.voice.status
+        let errorMessage = model.voice.errorMessage
+        let sttLoadedAfterStop = sttEngine.isLoaded
+        var recorderStatus = (didStart: false, didStop: false, path: "")
+        try? awaitBlocking {
+            recorderStatus = await recorder.status()
+        }
+        let recordingFileExists = FileManager.default.fileExists(atPath: recorderStatus.path)
+        let tapCount = currentTapCount()
+        model.shutdown()
+        try? FileManager.default.removeItem(atPath: recorderStatus.path)
+
+        guard activeWhileRecording == 1 else {
+            fputs("Expected one active session while recording before Accessibility denial, got \(activeWhileRecording)\n", stderr)
+            return 2
+        }
+
+        guard duckedVolume == 0.35 else {
+            fputs("Expected ducked volume 0.35 before Accessibility denial, got \(String(describing: duckedVolume))\n", stderr)
+            return 3
+        }
+
+        guard voiceStatusDuringRecording == .recording else {
+            fputs("Expected recording state before Accessibility denial, got \(voiceStatusDuringRecording)\n", stderr)
+            return 4
+        }
+
+        guard !sttLoadedWhileRecording else {
+            fputs("Expected harness STT to remain unloaded while recording\n", stderr)
+            return 5
+        }
+
+        guard activeAfterStop == 0 else {
+            fputs("Expected zero active sessions after Accessibility denial, got \(activeAfterStop)\n", stderr)
+            return 6
+        }
+
+        guard restoredVolume == 1 else {
+            fputs("Expected restored volume 1.0 after Accessibility denial, got \(String(describing: restoredVolume))\n", stderr)
+            return 7
+        }
+
+        guard voiceStatusAfterStop == .idle else {
+            fputs("Expected idle voice state after Accessibility denial, got \(voiceStatusAfterStop)\n", stderr)
+            return 8
+        }
+
+        guard errorMessage == TextInjectionError.accessibilityNotTrusted.errorDescription else {
+            fputs("Expected Accessibility permission error, got \(String(describing: errorMessage))\n", stderr)
+            return 9
+        }
+
+        guard !sttLoadedAfterStop else {
+            fputs("Expected harness STT to unload after Accessibility denial\n", stderr)
+            return 10
+        }
+
+        guard recorderStatus.didStart, recorderStatus.didStop else {
+            fputs("Expected recorder start/stop before Accessibility denial, got start=\(recorderStatus.didStart) stop=\(recorderStatus.didStop)\n", stderr)
+            return 11
+        }
+
+        guard !recordingFileExists else {
+            fputs("Expected recording file removed after Accessibility denial, path=\(recorderStatus.path)\n", stderr)
+            return 12
+        }
+
+        guard tapCount == 0 else {
+            fputs("Expected no Core Audio taps after Accessibility denial, got \(tapCount)\n", stderr)
+            return 13
+        }
+
+        emitHarnessLine("voiceAccessibilityDeniedHarness activeWhileRecording=\(activeWhileRecording) duckedVolume=\(duckedVolume ?? -1) sttLoadedWhileRecording=\(sttLoadedWhileRecording) activeAfterStop=\(activeAfterStop) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatusAfterStop) pasteDenied=true insertedText=nil sttLoadedAfterStop=\(sttLoadedAfterStop) recorderStarted=\(recorderStatus.didStart) recorderStopped=\(recorderStatus.didStop) recordingFileExists=\(recordingFileExists) error=\(errorMessage ?? "nil") tapCount=\(tapCount)")
         return 0
     }
 
