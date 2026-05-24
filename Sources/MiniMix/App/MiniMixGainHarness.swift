@@ -29,6 +29,7 @@ enum MiniMixGainHarness {
             CommandLine.arguments.contains("--voice-shutdown-harness") ||
             CommandLine.arguments.contains("--voice-shutdown-during-start-harness") ||
             CommandLine.arguments.contains("--voice-early-release-harness") ||
+            CommandLine.arguments.contains("--voice-hotkey-early-release-harness") ||
             CommandLine.arguments.contains("--voice-recorder-failure-harness") ||
             CommandLine.arguments.contains("--voice-paste-failure-harness") ||
             CommandLine.arguments.contains("--voice-stt-failure-harness")
@@ -54,6 +55,10 @@ enum MiniMixGainHarness {
 
         if CommandLine.arguments.contains("--voice-early-release-harness") {
             return runVoiceEarlyReleaseHarness()
+        }
+
+        if CommandLine.arguments.contains("--voice-hotkey-early-release-harness") {
+            return runVoiceHotkeyEarlyReleaseHarness()
         }
 
         if CommandLine.arguments.contains("--voice-recorder-failure-harness") {
@@ -1709,6 +1714,104 @@ enum MiniMixGainHarness {
     }
 
     @MainActor
+    private static func runVoiceHotkeyEarlyReleaseHarness() -> Int32 {
+        let transcript = argument(after: "--transcript") ?? "MiniMix hotkey early release harness"
+        let app = ManagedAudioApp(
+            id: "com.example.hotkey-early-release",
+            displayName: "Hotkey Early Release Harness",
+            bundleIdentifier: "com.example.hotkey-early-release",
+            processIdentifier: getpid(),
+            audioObjectID: 1,
+            volume: 1,
+            isMuted: false,
+            isProducingAudio: true,
+            isDucked: false
+        )
+
+        let textInjector = HarnessTextInjector()
+        let sttEngine = HarnessSTTEngine(transcript: transcript)
+        let hotkeyController = HarnessHotkeyController()
+        let model = MiniMixModel(
+            mixerController: MixerController(
+                appProvider: HarnessRunningAudioAppProvider(apps: [app]),
+                ruleStore: HarnessAudioRuleStore(),
+                audioEngine: HarnessTrackingAudioEngine()
+            ),
+            voiceController: VoiceInputController(
+                recorder: DelayedHarnessMicrophoneRecorder(delayNanoseconds: 250_000_000),
+                sttEngine: sttEngine,
+                textInjector: textInjector
+            ),
+            hotkeyController: hotkeyController
+        )
+
+        hotkeyController.simulatePress()
+        let immediateActiveAfterPress = model.mixer.activeAudioSessionCount
+        let immediateDuckedVolume = model.mixer.apps.first?.volume
+
+        hotkeyController.simulateRelease()
+        let activeAfterEarlyRelease = model.mixer.activeAudioSessionCount
+        let volumeAfterEarlyRelease = model.mixer.apps.first?.volume
+
+        spinRunLoop(for: 0.8)
+
+        let activeAfterSettled = model.mixer.activeAudioSessionCount
+        let restoredVolume = model.mixer.apps.first?.volume
+        let voiceStatus = model.voice.status
+        let insertedText = textInjector.insertedText
+        let sttLoadedAfterStop = sttEngine.isLoaded
+        model.shutdown()
+
+        guard immediateActiveAfterPress == 1 else {
+            fputs("Expected one active session immediately after hotkey press, got \(immediateActiveAfterPress)\n", stderr)
+            return 2
+        }
+
+        guard immediateDuckedVolume == 0.35 else {
+            fputs("Expected immediate hotkey ducked volume 0.35, got \(String(describing: immediateDuckedVolume))\n", stderr)
+            return 3
+        }
+
+        guard activeAfterEarlyRelease == 0 else {
+            fputs("Expected zero active sessions immediately after hotkey early release, got \(activeAfterEarlyRelease)\n", stderr)
+            return 4
+        }
+
+        guard volumeAfterEarlyRelease == 1 else {
+            fputs("Expected volume restored immediately after hotkey early release, got \(String(describing: volumeAfterEarlyRelease))\n", stderr)
+            return 5
+        }
+
+        guard activeAfterSettled == 0 else {
+            fputs("Expected zero active sessions after delayed hotkey startup settled, got \(activeAfterSettled)\n", stderr)
+            return 6
+        }
+
+        guard restoredVolume == 1 else {
+            fputs("Expected restored volume 1.0 after delayed hotkey startup settled, got \(String(describing: restoredVolume))\n", stderr)
+            return 7
+        }
+
+        guard voiceStatus == .idle else {
+            fputs("Expected idle voice state after hotkey early release settled, got \(voiceStatus)\n", stderr)
+            return 8
+        }
+
+        guard insertedText == transcript else {
+            fputs("Expected hotkey transcript insertion '\(transcript)', got \(String(describing: insertedText))\n", stderr)
+            return 9
+        }
+
+        guard !sttLoadedAfterStop else {
+            fputs("Expected STT engine to be unloaded after hotkey early release stop\n", stderr)
+            return 10
+        }
+
+        print("voiceHotkeyEarlyReleaseHarness immediateActiveAfterPress=\(immediateActiveAfterPress) immediateDuckedVolume=\(immediateDuckedVolume ?? -1) activeAfterEarlyRelease=\(activeAfterEarlyRelease) volumeAfterEarlyRelease=\(volumeAfterEarlyRelease ?? -1) activeAfterSettled=\(activeAfterSettled) restoredVolume=\(restoredVolume ?? -1) status=\(voiceStatus) insertedText=\(insertedText ?? "nil") sttLoadedAfterStop=\(sttLoadedAfterStop)")
+        return 0
+    }
+
+    @MainActor
     private static func runVoiceSTTFailureHarness() -> Int32 {
         let app = ManagedAudioApp(
             id: "com.example.stt-failure",
@@ -2377,10 +2480,28 @@ private final class HarnessTrackingAudioEngine: PerAppAudioControlling {
 @MainActor
 private final class HarnessHotkeyController: PushToTalkHotkeyControlling {
     private(set) var statusText = "Harness hotkey"
+    private var onPress: (@MainActor () -> Void)?
+    private var onRelease: (@MainActor () -> Void)?
 
-    func start(onPress: @escaping @MainActor () -> Void, onRelease: @escaping @MainActor () -> Void) {}
+    func start(onPress: @escaping @MainActor () -> Void, onRelease: @escaping @MainActor () -> Void) {
+        self.onPress = onPress
+        self.onRelease = onRelease
+        statusText = "Hold Control-Option-Space"
+    }
 
-    func stop() {}
+    func stop() {
+        onPress = nil
+        onRelease = nil
+        statusText = "Harness hotkey"
+    }
+
+    func simulatePress() {
+        onPress?()
+    }
+
+    func simulateRelease() {
+        onRelease?()
+    }
 }
 
 private actor HarnessMicrophoneRecorder: MicrophoneRecording {

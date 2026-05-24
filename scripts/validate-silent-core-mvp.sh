@@ -61,6 +61,7 @@ run_and_require "voice flow" "sttLoadedWhileRecording=false" scripts/probe-voice
 run_and_require "voice shutdown" "voiceShutdownHarness immediateActiveAfterPress=1 immediateDuckedVolume=0.35 activeWhileRecording=1" scripts/probe-voice-shutdown.sh "$sound"
 run_and_require "voice shutdown during start" "voiceShutdownDuringStartHarness immediateActiveAfterPress=1 immediateDuckedVolume=0.35 immediateStatus=idle activeAfterShutdown=0" scripts/probe-voice-shutdown-during-start.sh "$sound"
 run_and_require "voice early release" "voiceEarlyReleaseHarness immediateActiveAfterPress=1 immediateDuckedVolume=0.35 activeAfterEarlyRelease=0" scripts/probe-voice-early-release.sh
+run_and_require "voice hotkey early release" "voiceHotkeyEarlyReleaseHarness immediateActiveAfterPress=1 immediateDuckedVolume=0.35 activeAfterEarlyRelease=0" scripts/probe-voice-hotkey-early-release.sh
 run_and_require "voice recorder failure" "voiceRecorderFailureHarness immediateActiveAfterPress=1 immediateDuckedVolume=0.35 activeAfterFailure=0 restoredVolume=1.0" scripts/probe-voice-recorder-failure.sh
 run_and_require "voice STT failure" "voiceSTTFailureHarness activeWhileRecording=1 duckedVolume=0.35 sttLoadedWhileRecording=false activeAfterStop=0 restoredVolume=1.0" scripts/probe-voice-stt-failure.sh
 run_and_require "voice paste failure" "voicePasteFailureHarness activeWhileRecording=1 duckedVolume=0.35 sttLoadedWhileRecording=false activeAfterStop=0 restoredVolume=1.0" scripts/probe-voice-paste-failure.sh

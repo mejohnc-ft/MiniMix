@@ -10,7 +10,7 @@ automation_token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
 
 cleanup() {
   rm -f "$status_file" "$build_log"
-  osascript -e 'tell application "MiniMix" to quit' >/dev/null 2>&1 || pkill -x MiniMix >/dev/null 2>&1 || true
+  "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -45,7 +45,7 @@ if ! pgrep -x MiniMix >/dev/null; then
 fi
 
 unauthorized_file="$(mktemp -t minimix-automation-status-unauthorized.XXXXXX)"
-trap 'rm -f "$status_file" "$build_log" "$unauthorized_file"; osascript -e "tell application \"MiniMix\" to quit" >/dev/null 2>&1 || pkill -x MiniMix >/dev/null 2>&1 || true' EXIT
+trap 'rm -f "$status_file" "$build_log" "$unauthorized_file"; "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true' EXIT
 : >"$unauthorized_file"
 unauthorized_url="$(xcrun swift - "$unauthorized_file" <<'SWIFT'
 import Foundation

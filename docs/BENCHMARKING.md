@@ -210,6 +210,7 @@ scripts/probe-voice-flow.sh
 scripts/probe-voice-shutdown.sh
 scripts/probe-voice-shutdown-during-start.sh
 scripts/probe-voice-early-release.sh
+scripts/probe-voice-hotkey-early-release.sh
 scripts/probe-voice-recorder-failure.sh
 scripts/probe-voice-stt-failure.sh
 scripts/probe-voice-paste-failure.sh

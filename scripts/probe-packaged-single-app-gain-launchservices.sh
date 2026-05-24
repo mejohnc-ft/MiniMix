@@ -11,7 +11,7 @@ build_log="$(mktemp -t minimix-ls-single-app-gain-build.XXXXXX)"
 
 cleanup() {
   rm -f "$sound" "$output_file" "$build_log"
-  osascript -e 'tell application "MiniMix" to quit' >/dev/null 2>&1 || pkill -x MiniMix >/dev/null 2>&1 || true
+  "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true
   pkill -x afplay >/dev/null 2>&1 || true
 }
 trap cleanup EXIT

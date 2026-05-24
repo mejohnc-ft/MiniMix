@@ -111,6 +111,7 @@ Exit criteria:
 - Validate shutdown while recording restores ducking, stops the recorder, and avoids STT/paste with `scripts/probe-voice-shutdown.sh`.
 - Validate shutdown during microphone startup resolves the in-flight recorder task and avoids STT/paste with `scripts/probe-voice-shutdown-during-start.sh`.
 - Validate early push-to-talk release during mic startup with `scripts/probe-voice-early-release.sh`.
+- Validate the actual hotkey callback path for early release during mic startup with `scripts/probe-voice-hotkey-early-release.sh`.
 - Validate microphone startup failure cleanup with `scripts/probe-voice-recorder-failure.sh`.
 - Validate real `MicrophoneRecorder` capture when mic permission is already granted with `scripts/probe-microphone-recorder.sh`.
 - Validate STT failure cleanup with `scripts/probe-voice-stt-failure.sh`.

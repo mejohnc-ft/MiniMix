@@ -9,7 +9,7 @@ build_log="$(mktemp -t minimix-ls-app-relaunch-build.XXXXXX)"
 
 cleanup() {
   rm -f "$output_file" "$build_log"
-  osascript -e 'tell application "MiniMix" to quit' >/dev/null 2>&1 || pkill -x MiniMix >/dev/null 2>&1 || true
+  "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 

@@ -74,7 +74,7 @@ packaged_text_injector_file="$(mktemp -t minimix-packaged-text-injector.XXXXXX)"
 launchservices_permissions_file="$(mktemp -t minimix-ls-permissions.XXXXXX)"
 automation_status_file="$(mktemp -t minimix-automation-status.XXXXXX)"
 competitor_inventory_file="$(mktemp -t minimix-competitors.XXXXXX)"
-trap 'rm -f "$audit_file" "$debug_audit_file" "$core_file" "$packaged_state_file" "$packaged_relaunch_file" "$packaged_default_noop_file" "$single_app_gain_file" "$packaged_single_app_gain_file" "$packaged_multi_app_gain_file" "$packaged_mute_file" "$packaged_output_device_file" "$apple_speech_file" "$packaged_apple_speech_file" "$microphone_file" "$packaged_microphone_file" "$voice_real_recorder_file" "$packaged_hotkey_file" "$packaged_voice_flow_file" "$text_injector_file" "$packaged_text_injector_file" "$launchservices_permissions_file" "$automation_status_file" "$competitor_inventory_file"; osascript -e "tell application \"MiniMix\" to quit" >/dev/null 2>&1 || pkill -x MiniMix >/dev/null 2>&1 || true; pkill -x afplay >/dev/null 2>&1 || true' EXIT
+trap 'rm -f "$audit_file" "$debug_audit_file" "$core_file" "$packaged_state_file" "$packaged_relaunch_file" "$packaged_default_noop_file" "$single_app_gain_file" "$packaged_single_app_gain_file" "$packaged_multi_app_gain_file" "$packaged_mute_file" "$packaged_output_device_file" "$apple_speech_file" "$packaged_apple_speech_file" "$microphone_file" "$packaged_microphone_file" "$voice_real_recorder_file" "$packaged_hotkey_file" "$packaged_voice_flow_file" "$text_injector_file" "$packaged_text_injector_file" "$launchservices_permissions_file" "$automation_status_file" "$competitor_inventory_file"; "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true; pkill -x afplay >/dev/null 2>&1 || true' EXIT
 
 audit_args=(--configuration "$configuration")
 if [[ "$run_full" == true ]]; then
@@ -437,8 +437,8 @@ else
 fi
 
 if [[ "$core_status" -eq 0 && "$skip_core" == false ]]; then
-  core_summary="$(grep -E 'stateHarness|processInspectorHarness|panelFocusHarness|relaunchHarness|defaultNoopHarness|gainHarness|muteHarness|controllerHarness|outputDeviceHarness|multiHarness|hotkeyHarness|voiceHarness|voiceShutdownHarness|voiceShutdownDuringStartHarness|voiceEarlyReleaseHarness|voiceRecorderFailureHarness|voiceSTTFailureHarness|voicePasteFailureHarness|silentCoreMVP ok' "$core_file" | awk '{ out = out (out == "" ? "" : "; ") $0 } END { print out }')"
-  criterion "PROVEN" "active Core Audio process detection, non-stealing panel focus policy, relaunch/output-device recovery, default-rule no-op, single-app gain/mute, multi-app gain, reset teardown, deterministic voice duck/insert/shutdown-cancel/startup-cancel/early-release/failure cleanup" "$core_summary"
+  core_summary="$(grep -E 'stateHarness|processInspectorHarness|panelFocusHarness|relaunchHarness|defaultNoopHarness|gainHarness|muteHarness|controllerHarness|outputDeviceHarness|multiHarness|hotkeyHarness|voiceHarness|voiceShutdownHarness|voiceShutdownDuringStartHarness|voiceEarlyReleaseHarness|voiceHotkeyEarlyReleaseHarness|voiceRecorderFailureHarness|voiceSTTFailureHarness|voicePasteFailureHarness|silentCoreMVP ok' "$core_file" | awk '{ out = out (out == "" ? "" : "; ") $0 } END { print out }')"
+  criterion "PROVEN" "active Core Audio process detection, non-stealing panel focus policy, relaunch/output-device recovery, default-rule no-op, single-app gain/mute, multi-app gain, reset teardown, deterministic voice duck/insert/shutdown-cancel/startup-cancel/early-release/hotkey-early-release/failure cleanup" "$core_summary"
 elif [[ "$run_full" == true ]]; then
   if has_pass "full silent MVP gate"; then
     criterion "PROVEN" "active app detection, single/multi-app gain, reset teardown, packaged UI gain" "$(line_for "full silent MVP gate")"

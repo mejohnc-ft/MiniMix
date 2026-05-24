@@ -57,7 +57,7 @@ fi
 
 cleanup() {
   rm -f "$status_file"
-  osascript -e 'tell application "MiniMix" to quit' >/dev/null 2>&1 || pkill -x MiniMix >/dev/null 2>&1 || true
+  "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 

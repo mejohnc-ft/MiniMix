@@ -6,7 +6,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 app="$repo_root/build/MiniMix.app"
 
 cleanup() {
-  osascript -e 'tell application "MiniMix" to quit' >/dev/null 2>&1 || pkill -x MiniMix >/dev/null 2>&1 || true
+  "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 

@@ -4,7 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cleanup() {
-  osascript -e 'tell application "MiniMix" to quit' >/dev/null 2>&1 || pkill -x MiniMix >/dev/null 2>&1 || true
+  "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true
   osascript -e 'tell application "QuickTime Player" to quit' >/dev/null 2>&1 || pkill -x "QuickTime Player" >/dev/null 2>&1 || true
   pkill -x afplay >/dev/null 2>&1 || true
 }
@@ -51,6 +51,7 @@ echo "== Silent voice probes =="
 scripts/probe-hotkey-registration.sh
 scripts/probe-voice-flow.sh
 scripts/probe-voice-early-release.sh
+scripts/probe-voice-hotkey-early-release.sh
 scripts/probe-voice-recorder-failure.sh
 scripts/probe-voice-stt-failure.sh
 scripts/probe-voice-paste-failure.sh

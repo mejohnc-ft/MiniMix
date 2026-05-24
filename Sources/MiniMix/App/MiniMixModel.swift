@@ -195,7 +195,7 @@ final class MiniMixModel {
                 startDictation()
             },
             onRelease: { [weak self] in
-                guard let self, voice.isActive else {
+                guard let self, voice.isActive || isStartingDictation else {
                     return
                 }
                 stopDictation()

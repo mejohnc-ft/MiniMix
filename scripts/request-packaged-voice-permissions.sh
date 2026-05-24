@@ -65,13 +65,13 @@ done
 
 cleanup() {
   if [[ "$check_only" == true ]]; then
-    osascript -e 'tell application "MiniMix" to quit' >/dev/null 2>&1 || pkill -x MiniMix >/dev/null 2>&1 || true
+    "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true
   fi
 }
 trap cleanup EXIT
 
 cd "$repo_root"
-osascript -e 'tell application "MiniMix" to quit' >/dev/null 2>&1 || pkill -x MiniMix >/dev/null 2>&1 || true
+"$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true
 scripts/build-app-bundle.sh "$configuration" >/dev/null
 
 signature="$(codesign -dv "$app" 2>&1 || true)"
@@ -188,7 +188,7 @@ if [[ "$is_adhoc" == true && "$allow_adhoc" != true ]]; then
   echo "After install, scripts/build-app-bundle.sh auto-selects that identity." >&2
   echo "Override only if intentional:" >&2
   echo "  scripts/request-packaged-voice-permissions.sh $configuration --allow-adhoc" >&2
-  osascript -e 'tell application "MiniMix" to quit' >/dev/null 2>&1 || pkill -x MiniMix >/dev/null 2>&1 || true
+  "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true
   exit 65
 fi
 
