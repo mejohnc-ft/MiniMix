@@ -7,15 +7,19 @@ trigger="${MINIMIX_LIVE_VOICE_TRIGGER:-automation}"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 app="$repo_root/build/MiniMix.app"
 status_file="$(mktemp -t minimix-live-voice-status.XXXXXX)"
+build_log="$(mktemp -t minimix-live-voice-paste-build.XXXXXX)"
 automation_token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
+allow_adhoc=false
 
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/probe-live-voice-paste.sh [debug|release]
+  scripts/probe-live-voice-paste.sh [debug|release] [--allow-adhoc]
 
 Live packaged-app voice proof. This does not play audio. It requires MiniMix
 packaged-app mic, Speech, and Accessibility permissions to already be granted.
+It refuses ad-hoc signed builds unless --allow-adhoc is passed or
+MINIMIX_ALLOW_ADHOC_LIVE_VOICE=1 is set.
 
 The script opens TextEdit, focuses a blank document, records for
 MINIMIX_LIVE_VOICE_SECONDS seconds (default 5), and verifies that recognized
@@ -31,9 +35,30 @@ Speak a short phrase while the script is recording.
 EOF
 }
 
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  usage
-  exit 0
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    debug|release)
+      configuration="$1"
+      shift
+      ;;
+    --allow-adhoc)
+      allow_adhoc=true
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [[ "${MINIMIX_ALLOW_ADHOC_LIVE_VOICE:-0}" == "1" ]]; then
+  allow_adhoc=true
 fi
 
 if [[ "$configuration" != "debug" && "$configuration" != "release" ]]; then
@@ -56,14 +81,26 @@ if [[ "$trigger" != "hotkey" && "$trigger" != "automation" && "$trigger" != "ui"
 fi
 
 cleanup() {
-  rm -f "$status_file"
+  rm -f "$status_file" "$build_log"
   "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
 cd "$repo_root"
 
-scripts/build-app-bundle.sh "$configuration" >/dev/null
+if ! scripts/build-app-bundle.sh "$configuration" >"$build_log" 2>&1; then
+  cat "$build_log" >&2
+  exit 4
+fi
+
+signature="$(codesign -dv "$app" 2>&1 || true)"
+signature_summary="$(printf '%s\n' "$signature" | grep -E 'Signature=|Authority=|TeamIdentifier=|CodeDirectory' | tr '\n' ' ' | sed 's/[[:space:]][[:space:]]*/ /g; s/ $//')"
+echo "liveVoicePaste=codeSignature ${signature_summary:-unavailable}"
+if [[ "$allow_adhoc" != true &&
+      ( "$signature" == *"Signature=adhoc"* || "$signature" == *"TeamIdentifier=not set"* ) ]]; then
+  echo "liveVoicePaste=false reason=ad-hoc signature would make live packaged voice proof unstable; pass --allow-adhoc only for intentional ad-hoc testing" >&2
+  exit 65
+fi
 
 if ! scripts/probe-live-voice-readiness.sh "$configuration" >/tmp/minimix-live-voice-readiness.txt 2>&1; then
   cat /tmp/minimix-live-voice-readiness.txt

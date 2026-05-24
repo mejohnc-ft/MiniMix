@@ -32,6 +32,18 @@ if [[ ! -d "$app" ]]; then
 fi
 
 cleanup
+for _ in {1..30}; do
+  if ! pgrep -x MiniMix >/dev/null; then
+    break
+  fi
+  sleep 0.1
+done
+
+if pgrep -x MiniMix >/dev/null; then
+  echo "packagedAutomationStatus ready=false reason=MiniMix did not quit before probe launch" >&2
+  exit 8
+fi
+
 open -g -n "$app" --args --automation-token "$automation_token"
 
 for _ in {1..40}; do
@@ -82,9 +94,10 @@ components.queryItems = [
 print(components.url!.absoluteString)
 SWIFT
 )"
-open -g "$status_url" >/dev/null 2>&1
 
-for _ in {1..30}; do
+for attempt in {1..40}; do
+  open -g "$status_url" >/dev/null 2>&1
+  sleep 0.2
   if [[ -s "$status_file" ]]; then
     status="$(cat "$status_file" | tr '\n' ' ' | sed 's/[[:space:]][[:space:]]*/ /g; s/^ //; s/ $//')"
     if [[ "$status" == miniMixAutomationStatus* ]]; then
@@ -94,7 +107,6 @@ for _ in {1..30}; do
     echo "packagedAutomationStatus ready=false reason=unexpected status=${status}" >&2
     exit 6
   fi
-  sleep 0.2
 done
 
 echo "packagedAutomationStatus ready=false reason=no status response" >&2

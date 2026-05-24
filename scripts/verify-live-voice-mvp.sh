@@ -124,7 +124,14 @@ fi
 echo
 echo "== Packaged automation status =="
 automation_status=0
-scripts/probe-packaged-automation-status.sh "$configuration" || automation_status=$?
+automation_output="$(scripts/probe-packaged-automation-status.sh "$configuration" 2>&1)" || automation_status=$?
+if [[ "$automation_status" -ne 0 ]]; then
+  "$repo_root/scripts/quit-minimix.sh" >/dev/null 2>&1 || true
+  sleep 0.5
+  automation_status=0
+  automation_output="$(scripts/probe-packaged-automation-status.sh "$configuration" 2>&1)" || automation_status=$?
+fi
+printf '%s\n' "$automation_output"
 if [[ "$automation_status" -ne 0 ]]; then
   echo "liveVoiceMVP=false reason=packaged automation status failed status=$automation_status" >&2
   exit "$automation_status"
@@ -235,5 +242,9 @@ fi
 
 echo
 echo "== Live paste proof =="
-MINIMIX_LIVE_VOICE_TRIGGER="$trigger" scripts/probe-live-voice-paste.sh "$configuration"
+live_paste_args=("$configuration")
+if [[ "$allow_adhoc" == true ]]; then
+  live_paste_args+=(--allow-adhoc)
+fi
+MINIMIX_LIVE_VOICE_TRIGGER="$trigger" scripts/probe-live-voice-paste.sh "${live_paste_args[@]}"
 echo "liveVoiceMVP=true"
